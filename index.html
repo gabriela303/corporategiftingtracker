@@ -1,0 +1,1971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corporate Gifting Budget Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitcount+Single&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #f0f0f1;
+  --dark: #162c36;
+  --teal: #b4dad8;
+  --white: #ffffff;
+  --border: 0.5px solid rgba(22,44,54,0.25);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--dark); padding: 2rem; font-size: 14px; }
+
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.metric { background: var(--white); border: var(--border); border-radius: 0; padding: 12px 14px; }
+.mlabel { font-size: 12px; color: var(--dark); opacity: 0.55; margin-bottom: 8px; }
+.mval { font-size: 42px; font-weight: 400; color: var(--dark); }
+.mval.green { color: #0F6E56; }
+.mval.red { color: #A32D2D; }
+.mval.amber { color: #854F0B; }
+.msub { font-size: 11px; color: var(--dark); opacity: 0.4; margin-top: 2px; }
+
+/* Summary cards */
+.summary-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; align-items: start; }
+.sum-card { background: var(--white); border: var(--border); border-radius: 0; padding: 20px 20px; }
+.sum-card-label { font-size: 13px; color: var(--dark); opacity: 0.55; margin-bottom: 12px; line-height: 1.4; }
+.sum-card-main { display: flex; align-items: center; gap: 10px; }
+.sum-card-val { font-size: 32px; font-weight: 300; color: var(--dark); letter-spacing: -0.03em; line-height: 1; }
+.sum-card-toggle { background: none; border: none; cursor: pointer; padding: 2px 4px; color: var(--dark); opacity: 0.35; font-size: 11px; line-height: 1; transition: opacity .15s; flex-shrink: 0; margin-top: 2px; }
+.sum-card-toggle:hover { opacity: 0.7; }
+.sum-card-sublabel { font-size: 12px; color: var(--dark); opacity: 0.45; margin-left: 6px; margin-right: 2px; white-space: nowrap; align-self: center; }
+.sum-card-status { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 13px; font-weight: 500; }
+.sum-card-dot { width: 8px; height: 8px; border-radius: 0; flex-shrink: 0; }
+.sum-card-breakdown { display: none; margin-top: 14px; padding-top: 14px; border-top: 0.5px solid rgba(22,44,54,0.1); display: none; }
+.sum-card-breakdown.open { display: flex; gap: 28px; }
+.sum-bd-item { display: flex; flex-direction: column; gap: 3px; }
+.sum-bd-val { font-size: 22px; font-weight: 300; color: var(--dark); line-height: 1.4; }
+.sum-bd-label { font-size: 11px; color: var(--dark); opacity: 0.45; line-height: 1.4; }
+
+@media (max-width: 700px) {
+  .summary-cards { grid-template-columns: 1fr; }
+  .sum-card-val { font-size: 38px; }
+}
+
+.section-label { font-size: 11px; font-weight: 600; color: var(--dark); opacity: 0.5; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.sep { height: 0.5px; margin: 1.5rem 0; }
+
+.slider-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.slider-label { font-size: 13px; color: var(--dark); width: 170px; flex-shrink: 0; line-height: 1.4; }
+.slider-bar-wrap { flex: 1; position: relative; height: 2px; background: rgba(22,44,54,0.12); }
+.slider-bar-fill { position: absolute; left: 0; top: 0; height: 100%; background: var(--dark); transition: width .3s; }
+.slider-val-input { width: 72px; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; color: var(--dark); background: transparent; border: 1px solid transparent; outline: none; text-align: right; padding: 3px 6px; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s; border-radius: 0; -moz-appearance: textfield; }
+.slider-val-input::-webkit-outer-spin-button, .slider-val-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.slider-val-input:hover { background: rgba(22,44,54,0.05); border-color: rgba(22,44,54,0.2); }
+.slider-val-input:focus { background: var(--white); border-color: var(--dark); cursor: text; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 7px 10px; border-bottom: var(--border); color: var(--dark); opacity: 0.5; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+td { padding: 10px 10px; border-bottom: 0.5px solid rgba(22,44,54,0.08); color: var(--dark); vertical-align: middle; }
+tfoot td { font-weight: 600; color:grey;border-top: var(--border); border-bottom: none; padding: 10px; }
+
+.badge { display: inline-block; padding: 3px 9px; border-radius: 0; font-size: 11px; font-weight: 600; }
+.b-green { background: #E1F5EE; color: #085041; }
+.b-amber { background: #FAEEDA; color: #633806; }
+.b-red { background: #FCEBEB; color: #791F1F; }
+
+.dot { display: inline-block; width: 6px; height: 6px; border-radius: 0; margin-right: 4px; vertical-align: middle; }
+.dot-blue { background: #378ADD; }
+.dot-gray { background: rgba(22,44,54,0.25); }
+
+.budget-bar-wrap { margin: 1.25rem 0 0.5rem; }
+.budget-bar-bg { width: 100%; height: 18px; background: var(--white); border: var(--border); border-radius: 0; overflow: hidden; position: relative; }
+.budget-bar-fill { height: 100%; transition: width .4s, background .4s; }
+.budget-bar-limit { position: absolute; right: 0; top: 0; height: 100%; width: 2px; background: #E24B4A; }
+.note { font-size: 12px; color: var(--dark); opacity: 0.45; margin-top: 6px; line-height: 1.6; }
+
+/* TABS */
+.tab-container { margin-top: 2rem; border: var(--border); border-radius: 0; overflow: hidden; background: var(--white); }
+.tab-bar { display: flex; align-items: stretch; border-bottom: var(--border); background: var(--bg); overflow-x: auto; }
+.tab-btn { padding: 10px 18px; font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; color: var(--dark); opacity: 0.45; border: none; background: none; cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; transition: opacity .15s, border-color .15s; flex-shrink: 0; }
+.tab-btn:hover { opacity: 0.8; }
+.tab-btn.active { opacity: 1; border-bottom-color: var(--dark); }
+.tab-name-input { font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; color: var(--dark); background: transparent; border: none; outline: none; cursor: text; padding: 10px 18px; border-bottom: 2px solid var(--dark); width: auto; min-width: 40px; box-sizing: content-box; }
+.tab-name-input:focus { background: rgba(22,44,54,0.04); border-radius: 0; }
+.tab-btn-input { font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; color: var(--dark); opacity: 0.45; background: transparent; border: none; outline: none; cursor: pointer; padding: 10px 18px; border-bottom: 2px solid transparent; width: auto; min-width: 40px; box-sizing: content-box; transition: opacity .15s; }
+.tab-btn-input:hover { opacity: 0.8; }
+.tab-btn-input:focus { opacity: 1; cursor: text; border-bottom-color: rgba(22,44,54,0.3); background: rgba(22,44,54,0.03); border-radius: 0; outline: none; }
+.add-tab-btn { padding: 10px 14px; font-size: 18px; font-family: 'Inter', sans-serif; color: var(--dark); opacity: 0.3; border: none; background: none; cursor: pointer; flex-shrink: 0; line-height: 1; transition: opacity .15s; }
+.add-tab-btn:hover { opacity: 0.7; }
+.tab-content { display: none; padding: 1.25rem 1.5rem; }
+.tab-content.active { display: block; }
+
+/* PANEL */
+.detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-bottom: 1.25rem; }
+.detail-metric { background: var(--bg); border: var(--border); border-radius: 0; padding: 16px 12px; }
+.detail-metric .mlabel { font-size: 11px; }
+.detail-metric .mval { font-size: 16px; }
+
+.meta-row { display: flex; align-items: center; gap: 16px; margin-bottom: 1rem; flex-wrap: wrap; }
+.meta-row label { font-size: 12px; color: var(--dark); opacity: 0.55; }
+.meta-row input[type=number] { width: 70px; border: var(--border); border-radius: 0; padding: 5px 8px; font-size: 13px; text-align: center; color: var(--dark); outline: none; background: var(--white); font-family: 'Inter', sans-serif; }
+.meta-row input[type=number]:focus { border-color: var(--dark); }
+.meta-row select { border: var(--border); border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--dark); background: var(--white); outline: none; cursor: pointer; font-family: 'Inter', sans-serif; }
+.meta-row select:focus { border-color: var(--dark); }
+
+.li-section-label { font-size: 11px; font-weight: 600; color: var(--dark); opacity: 1; text-transform: uppercase; letter-spacing: .06em; margin: 16px 0 6px; padding-left: 8px; }
+.li-section-label:first-of-type { margin-top: 0; }
+
+.line-items { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+.line-items th { text-align: left; padding: 6px 8px; border-bottom: var(--border); color: var(--dark); opacity: 0.45; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.line-items td { padding: 5px 6px; border-bottom: 0.5px solid rgba(22,44,54,0.07); vertical-align: middle; }
+.line-items tr:last-child td { border-bottom: none; }
+.line-items td.num-cell { text-align: left; padding-left: 8px; font-size: 13px; }
+.line-items td.num-cell-muted { opacity: 0.5; font-size: 12px; }
+.line-items td.num-cell-bold { font-weight: 600; }
+.line-items input[type=text] { text-align: left; }
+.line-items input.num { text-align: left; }
+.line-items input.qty { text-align: left; }
+.line-items input[type=text] { border: 1px solid transparent; border-radius: 0; padding: 5px 8px; font-size: 13px; width: 100%; background: transparent; color: var(--dark); outline: none; font-family: 'Inter', sans-serif; transition: border-color .15s, background .15s; }
+.line-items input[type=text]:hover { border-color: rgba(22,44,54,0.2); background: var(--white); }
+.line-items input[type=text]:focus { border-color: var(--dark); background: var(--white); }
+.line-items input.num { width: 100%; text-align: left; font-family: 'Inter', sans-serif; }
+.line-items input.qty { width: 64px; text-align: left; font-family: 'Inter', sans-serif; }
+.del-btn { background: none; border: none; color: rgba(22,44,54,0.2); cursor: pointer; font-size: 16px; padding: 1px 6px; border-radius: 0; line-height: 1; font-family: 'Inter', sans-serif; }
+.del-btn:hover { color: #A32D2D; background: #FCEBEB; }
+.add-btn { font-size: 12px; font-family: 'Inter', sans-serif; padding: 6px 14px; border: var(--border); border-radius: 0; background: var(--white); color: var(--dark); cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.add-btn:hover { background: var(--bg); }
+
+/* Section blocks with hover highlight */
+.section-block { padding: 10px 0 10px; margin: 0; border: 1px solid transparent; transition: border-color .15s, background .15s; }
+.section-block:hover { border-color: rgba(22,44,54,0.12); background: rgba(22,44,54,0.018); }
+.section-block .li-section-label { margin-top: 0; margin-bottom: 8px; }
+.section-block + .section-block { margin-top: 20px; }
+.section-block-btns { display: flex; gap: 6px; margin-top: 6px; margin-left: 6px; }
+.remove-supplier-btn { font-size: 12px; font-family: 'Inter', sans-serif; padding: 6px 14px; border: 0.5px solid rgba(163,45,45,0.3); border-radius: 0; background: var(--white); color: #A32D2D; cursor: pointer; font-weight: 500; transition: background .15s; }
+.remove-supplier-btn:hover { background: #FCEBEB; }
+
+@media (max-width: 700px) {
+  .grid4 { grid-template-columns: repeat(2,1fr); }
+  body { padding: 1rem; }
+  .detail-grid { grid-template-columns: repeat(2,1fr); }
+  th, td { padding: 5px 6px; font-size: 12px; }
+}
+
+/* Import modal */
+.import-overlay { display: none; position: fixed; inset: 0; background: rgba(22,44,54,0.45); z-index: 100; align-items: center; justify-content: center; }
+.import-overlay.open { display: flex; }
+.import-modal { background: var(--white); border-radius: 0; padding: 24px 26px; width: 620px; max-width: calc(100vw - 2rem); max-height: calc(100vh - 2rem); overflow-y: auto; box-shadow: 0 8px 40px rgba(22,44,54,0.18); }
+.import-modal h3 { font-size: 15px; font-weight: 600; color: var(--dark); margin-bottom: 4px; }
+.import-modal .import-sub { font-size: 12px; color: var(--dark); opacity: 0.45; margin-bottom: 14px; line-height: 1.5; }
+.import-modal textarea { width: 100%; height: 140px; border: var(--border); border-radius: 0; padding: 10px 12px; font-size: 12px; font-family: 'Inter', monospace; color: var(--dark); resize: vertical; outline: none; line-height: 1.5; background: var(--bg); }
+.import-modal textarea:focus { border-color: var(--dark); background: var(--white); }
+.import-rate-row { display: flex; align-items: center; gap: 10px; margin: 10px 0 12px; flex-wrap: wrap; }
+.import-rate-row label { font-size: 12px; color: var(--dark); opacity: 0.55; }
+.import-rate-row .rate-badge { font-size: 12px; font-weight: 600; background: #E1F5EE; color: #085041; padding: 3px 10px; border-radius: 0; }
+.import-rate-row .rate-note { font-size: 11px; color: var(--dark); opacity: 0.4; }
+.import-modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.import-modal-btns button { font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500; padding: 8px 18px; border-radius: 0; cursor: pointer; border: var(--border); }
+.import-cancel-btn { background: var(--white); color: var(--dark); }
+.import-cancel-btn:hover { background: var(--bg); }
+.import-confirm-btn { background: var(--dark); color: var(--white); border-color: var(--dark); }
+.import-confirm-btn:hover { opacity: 0.85; }
+.import-preview { margin: 10px 0 0; background: var(--bg); border: var(--border); border-radius: 0; padding: 10px 12px; font-size: 12px; color: var(--dark); display: none; max-height: 160px; overflow-y: auto; }
+.import-preview.show { display: block; }
+.import-preview-row { display: flex; gap: 10px; padding: 3px 0; border-bottom: 0.5px solid rgba(22,44,54,0.07); }
+.import-preview-row:last-child { border-bottom: none; }
+.import-preview-row .pr-country { flex: 1; font-weight: 500; }
+.import-preview-row .pr-qty { width: 30px; text-align: center; opacity: 0.6; }
+.import-preview-row .pr-amt { width: 70px; text-align: right; color: #0F6E56; font-weight: 600; }
+.import-preview-row .pr-orig { width: 70px; text-align: right; opacity: 0.4; font-size: 11px; }
+.import-err { font-size: 12px; color: #A32D2D; margin-top: 8px; display: none; }
+.import-err.show { display: block; }
+.import-btn { font-size: 12px; font-family: 'Inter', sans-serif; padding: 6px 14px; border: var(--border); border-radius: 0; background: var(--white); color: var(--dark); cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.import-btn:hover { background: var(--bg); }
+.import-btn svg { opacity: 0.5; }
+/* Column mapping */
+.col-map-section { margin: 12px 0 10px; }
+.col-map-label { font-size: 11px; font-weight: 600; color: var(--dark); opacity: 0.5; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.col-map-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.col-map-table th { text-align: left; padding: 5px 8px; border-bottom: var(--border); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--dark); opacity: 0.45; }
+.col-map-table td { padding: 4px 6px; border-bottom: 0.5px solid rgba(22,44,54,0.07); vertical-align: middle; }
+.col-map-table tr:last-child td { border-bottom: none; }
+.col-map-sample { font-family: 'Inter', monospace; font-size: 11px; color: var(--dark); opacity: 0.6; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-map-select { border: var(--border); border-radius: 0; padding: 4px 8px; font-size: 12px; font-family: 'Inter', sans-serif; color: var(--dark); background: var(--white); outline: none; cursor: pointer; width: 100%; }
+.col-map-select:focus { border-color: var(--dark); }
+.col-map-select.mapped-country { background: #E8F4FF; border-color: #4A90D9; color: #1a4a6e; }
+.col-map-select.mapped-qty { background: #FFF8E8; border-color: #D4A017; color: #5a3e00; }
+.col-map-select.mapped-total { background: #E1F5EE; border-color: #3d9e6e; color: #085041; }
+.col-map-select.mapped-rate { background: #F0EEF8; border-color: #7B68C8; color: #2e1e6e; }
+.col-map-warn { font-size: 11px; color: #854F0B; background: #FAEEDA; padding: 5px 10px; margin-top: 6px; display: none; }
+.col-map-warn.show { display: block; }
+/* Compare column */
+.compare-toggle-btn { font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 500; padding: 3px 10px; border: 0.5px solid rgba(22,44,54,0.22); border-radius: 0; background: var(--white); color: var(--dark); opacity: 0.55; cursor: pointer; transition: all .15s; letter-spacing: .01em; }
+.compare-toggle-btn:hover { opacity: 0.9; background: var(--bg); }
+.compare-toggle-btn.active { background: #E8F4FF; border-color: #4A90D9; color: #1a4a6e; opacity: 1; }
+.cmp-cell { background: #EEF6FF; border-left: 2px solid #C5DFF8 !important; padding: 5px 8px !important; }
+.cmp-head { background: #EEF6FF; border-left: 2px solid #C5DFF8 !important; font-size: 10px !important; opacity: 1 !important; color: #2a5a8a !important; letter-spacing: .04em; white-space: nowrap; }
+.cmp-pill { display: inline-flex; flex-direction: column; gap: 1px; padding: 3px 0; }
+.cmp-pill-name { font-size: 10px; color: #2a5a8a; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+.cmp-pill-val { font-size: 12px; font-weight: 600; color: #1a4a6e; }
+
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dark); opacity: 0.4; display: inline-block; flex-shrink: 0; }
+.status-dot.live { background: #3d9e6e; opacity: 1; }
+.status-dot.saving { background: #854F0B; opacity: 1; }
+.last-updated { font-size: 12px; color: var(--dark); opacity: 0.55; display: flex; align-items: center; gap: 6px; }
+
+/* Read-only mode */
+body.read-only .edit-statuses-btn,
+body.read-only .add-btn,
+body.read-only .add-tab-btn,
+body.read-only .del-btn,
+body.read-only .remove-supplier-btn,
+body.read-only .import-btn,
+body.read-only .compare-toggle-btn,
+body.read-only .section-block-btns,
+body.read-only [id^="url-display-wrap-"] button,
+body.read-only .meta-row select,
+body.read-only .meta-row input[type=text] { display: none !important; pointer-events: none !important; }
+body.read-only .line-items input[type=text],
+body.read-only .line-items input.num,
+body.read-only .line-items input.qty { pointer-events: none; border-color: transparent !important; background: transparent !important; cursor: default; }
+body.read-only .tab-btn-input,
+body.read-only .tab-name-input { pointer-events: none; cursor: default; }
+body.read-only [id^="ly-"][id$="-display"] { cursor: default; border-bottom: none; }
+body.read-only .sum-card-toggle { display: none; }
+body.read-only .meta-row input[readonly] { pointer-events: none; border-color: rgba(22,44,54,0.12); background: transparent; }
+
+/* Edit key banner */
+.edit-banner { position: fixed; bottom: 0; left: 0; right: 0; background: var(--dark); color: var(--white); z-index: 200; display: flex; align-items: center; gap: 12px; padding: 10px 20px; font-size: 13px; font-family: 'Inter', sans-serif; }
+.edit-banner input { flex: 0 0 200px; padding: 6px 10px; font-size: 13px; font-family: 'Inter', sans-serif; border: 1px solid rgba(255,255,255,0.25); border-radius: 0; background: rgba(255,255,255,0.08); color: var(--white); outline: none; }
+.edit-banner input::placeholder { color: rgba(255,255,255,0.35); }
+.edit-banner input:focus { border-color: rgba(255,255,255,0.6); }
+.edit-banner button { padding: 6px 16px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500; background: var(--white); color: var(--dark); border: none; border-radius: 0; cursor: pointer; }
+.edit-banner button:hover { background: #e8e8e8; }
+.edit-banner .banner-msg { font-size: 12px; opacity: 0.6; }
+.edit-banner .banner-err { font-size: 12px; color: #ff8080; display: none; }
+.edit-banner .banner-err.show { display: inline; }
+.ro-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; background: #FAEEDA; color: #633806; padding: 3px 9px; border-radius: 0; }
+body.edit-mode .edit-banner { display: none; }
+body.edit-mode .ro-badge { display: none; }
+body:not(.edit-mode) { padding-bottom: 52px; }
+
+/* Status editor modal */
+.status-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(22,44,54,0.45); z-index: 150; align-items: center; justify-content: center; }
+.status-modal-overlay.open { display: flex; }
+.status-modal { background: var(--white); padding: 24px 26px; width: 480px; max-width: calc(100vw - 2rem); max-height: calc(100vh - 2rem); overflow-y: auto; box-shadow: 0 8px 40px rgba(22,44,54,0.18); }
+.status-modal h3 { font-size: 15px; font-weight: 600; color: var(--dark); margin-bottom: 4px; }
+.status-modal .sub { font-size: 12px; color: var(--dark); opacity: 0.45; margin-bottom: 16px; line-height: 1.5; }
+.status-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 0.5px solid rgba(22,44,54,0.07); }
+.status-row:last-child { border-bottom: none; }
+.status-row input.sl { flex: 1; border: 1px solid transparent; border-radius: 0; padding: 5px 8px; font-size: 13px; background: transparent; color: var(--dark); outline: none; font-family: 'Inter', sans-serif; transition: border-color .15s, background .15s; }
+.status-row input.sl:hover { border-color: rgba(22,44,54,0.2); background: var(--bg); }
+.status-row input.sl:focus { border-color: var(--dark); background: var(--white); }
+.badge-picker { display: flex; gap: 4px; flex-shrink: 0; }
+.badge-pick-btn { width: 22px; height: 22px; border-radius: 0; border: 2px solid transparent; cursor: pointer; transition: border-color .1s; }
+.badge-pick-btn.selected { border-color: var(--dark); }
+.badge-pick-btn.bp-green { background: #E1F5EE; }
+.badge-pick-btn.bp-amber { background: #FAEEDA; }
+.badge-pick-btn.bp-red   { background: #FCEBEB; }
+.status-modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; padding-top: 14px; border-top: 0.5px solid rgba(22,44,54,0.1); }
+.status-modal-btns button { font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500; padding: 8px 18px; border-radius: 0; cursor: pointer; border: var(--border); }
+.sm-cancel { background: var(--white); color: var(--dark); }
+.sm-cancel:hover { background: var(--bg); }
+.sm-save { background: var(--dark); color: var(--white); border-color: var(--dark); }
+.sm-save:hover { opacity: 0.85; }
+.sm-add { background: var(--white); color: var(--dark); margin-right: auto; }
+.sm-add:hover { background: var(--bg); }
+.edit-statuses-btn { background: none; border: none; cursor: pointer; padding: 4px 6px; opacity: 0.3; font-size: 13px; color: var(--dark); line-height: 1; transition: opacity .15s; flex-shrink: 0; }
+.edit-statuses-btn:hover { opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1.25rem;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <h1 style="font-size:22px;font-weight:600;color:var(--dark);letter-spacing:-0.01em;font-family:'Bitcount Single',monospace;">Corporate Gifting Tracker</h1>
+    <span class="ro-badge" id="ro-badge">👁 View only</span>
+  </div>
+  <div class="last-updated" id="refreshStamp"><span class="status-dot" id="statusDot"></span>Loading…</div>
+</div>
+
+<div class="summary-cards">
+  <!-- Current plan estimate -->
+  <div class="sum-card">
+    <div class="sum-card-label" id="card-current-label">This year</div>
+    <div class="sum-card-main">
+      <div class="sum-card-val" id="bd-current-cpr">S$ —</div>
+      <span class="sum-card-sublabel">per recipient</span>
+      <button class="sum-card-toggle" id="toggle-current" onclick="toggleBreakdown('current')" title="Show breakdown">▼</button>
+      <div class="sum-card-status" id="card-current-status"></div>
+    </div>
+    <div class="sum-card-breakdown" id="breakdown-current">
+      <div class="sum-bd-item">
+        <div class="sum-bd-val" id="card-current-val">S$ —</div>
+        <div class="sum-bd-label">total spend</div>
+      </div>
+      <div class="sum-bd-item">
+        <div class="sum-bd-val" id="bd-current-gifts">S$ —</div>
+        <div class="sum-bd-label" id="bd-current-gifts-label">total cost of gifts</div>
+      </div>
+      <div class="sum-bd-item">
+        <div class="sum-bd-val" id="bd-current-ship">S$ —</div>
+        <div class="sum-bd-label" id="bd-current-ship-label">shipping costs</div>
+      </div>
+      <div class="sum-bd-item">
+        <div class="sum-bd-val" id="bd-current-duties">S$ —</div>
+        <div class="sum-bd-label" id="bd-current-duties-label">duties &amp; customs</div>
+      </div>
+    </div>
+  </div>
+  <!-- Last year -->
+  <div class="sum-card">
+    <div class="sum-card-label">Last year (100 gifts across 13 countries)</div>
+    <div class="sum-card-main">
+      <div class="sum-card-val" id="ly-cpr-display">S$ —</div>
+      <span class="sum-card-sublabel">per recipient</span>
+      <button class="sum-card-toggle" id="toggle-lastyear" onclick="toggleBreakdown('lastyear')" title="Show breakdown">▼</button>
+    </div>
+    <div class="sum-card-breakdown" id="breakdown-lastyear">
+      <div class="sum-bd-item">
+        <div class="sum-bd-val" style="display:flex;align-items:baseline;gap:1px;">
+          <span style="font-size:14px;opacity:0.5;font-weight:300;">S$</span>
+          <span id="ly-total" style="font-size:22px;font-weight:300;color:var(--dark);">13,560</span>
+        </div>
+        <div class="sum-bd-label">total spent</div>
+      </div>
+      <div class="sum-bd-item">
+        <div class="sum-bd-val" style="display:flex;align-items:baseline;gap:1px;">
+          <span style="font-size:14px;opacity:0.5;font-weight:300;">S$</span>
+          <span id="ly-gifts-display" onclick="lyStartEdit('gifts')" style="font-size:22px;font-weight:300;color:var(--dark);cursor:pointer;border-bottom:1.5px solid rgba(22,44,54,0.15);padding:0 2px;" title="Click to edit">5111</span>
+          <input type="text" id="ly-gifts" style="display:none;font-size:22px;font-weight:300;color:var(--dark);background:transparent;border:none;border-bottom:1.5px solid var(--dark);outline:none;width:90px;font-family:'Inter',sans-serif;padding:0 2px;">
+        </div>
+        <div class="sum-bd-label" id="ly-gifts-label">total cost of gifts (38%)</div>
+      </div>
+      <div class="sum-bd-item">
+        <div class="sum-bd-val" style="display:flex;align-items:baseline;gap:1px;">
+          <span style="font-size:14px;opacity:0.5;font-weight:300;">S$</span>
+          <span id="ly-ship-display" onclick="lyStartEdit('ship')" style="font-size:22px;font-weight:300;color:var(--dark);cursor:pointer;border-bottom:1.5px solid rgba(22,44,54,0.15);padding:0 2px;" title="Click to edit">7292</span>
+          <input type="text" id="ly-ship" style="display:none;font-size:22px;font-weight:300;color:var(--dark);background:transparent;border:none;border-bottom:1.5px solid var(--dark);outline:none;width:90px;font-family:'Inter',sans-serif;padding:0 2px;">
+        </div>
+        <div class="sum-bd-label" id="ly-ship-label">shipping costs (54%)</div>
+      </div>
+      <div class="sum-bd-item">
+        <div class="sum-bd-val" style="display:flex;align-items:baseline;gap:1px;">
+          <span style="font-size:14px;opacity:0.5;font-weight:300;">S$</span>
+          <span id="ly-duties-display" onclick="lyStartEdit('duties')" style="font-size:22px;font-weight:300;color:var(--dark);cursor:pointer;border-bottom:1.5px solid rgba(22,44,54,0.15);padding:0 2px;" title="Click to edit">1157</span>
+          <input type="text" id="ly-duties" style="display:none;font-size:22px;font-weight:300;color:var(--dark);background:transparent;border:none;border-bottom:1.5px solid var(--dark);outline:none;width:90px;font-family:'Inter',sans-serif;padding:0 2px;">
+        </div>
+        <div class="sum-bd-label" id="ly-duties-label">duties &amp; customs (8%)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background:var(--white);border:var(--border);padding:20px 24px 16px;margin-bottom:1.5rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div class="section-label" style="margin-bottom:0;">Budget monitor</div>
+    <div style="display:flex;align-items:center;gap:18px;">
+      <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dark);">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#467CBD;flex-shrink:0;"></span>This year
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dark);">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#FAE3F0;flex-shrink:0;"></span>Last year
+      </div>
+    </div>
+  </div>
+  <canvas id="budget-chart" height="90"></canvas>
+</div>
+
+<div class="sep"></div>
+
+<div class="section-label">Cost breakdown by supplier</div>
+<table style="table-layout:fixed;">
+  <colgroup>
+    <col style="width:22%">
+    <col style="width:18%">
+    <col style="width:10%">
+    <col style="width:14%">
+    <col style="width:14%">
+    <col style="width:12%">
+    <col style="width:10%">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Supplier</th>
+      <th>Region</th>
+      <th>Recipients</th>
+      <th>Gift cost</th>
+      <th>Shipping est.</th>
+      <th>Subtotal</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody id="overview-tbody"></tbody>
+  <tfoot id="overview-tfoot"></tfoot>
+</table>
+
+<div class="tab-container">
+  <div class="tab-bar" id="tab-bar">
+    <button class="add-tab-btn" id="add-tab-btn" title="Add supplier">+</button>
+  </div>
+  <div id="tab-panels"></div>
+</div>
+
+<!-- Status Editor Modal -->
+<div class="status-modal-overlay" id="status-modal-overlay" onclick="if(event.target===this)closeStatusModal()">
+  <div class="status-modal">
+    <h3>Edit statuses</h3>
+    <div class="sub">Rename, recolour, add or remove status options. Changes apply across all suppliers.</div>
+    <div id="status-rows-container"></div>
+    <div class="status-modal-btns">
+      <button class="sm-add" onclick="addStatusRow()">+ Add status</button>
+      <button class="sm-cancel" onclick="closeStatusModal()">Cancel</button>
+      <button class="sm-save" onclick="saveStatusModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit key banner (visible in read-only mode) -->
+<div class="edit-banner" id="edit-banner">
+  <span class="banner-msg">This tracker is read-only. Enter the edit key to make changes.</span>
+  <input type="password" id="edit-key-input" placeholder="Edit key…" onkeydown="if(event.key==='Enter')tryEditKey()">
+  <button onclick="tryEditKey()">Unlock</button>
+  <span class="banner-err" id="banner-err">Incorrect key</span>
+</div>
+
+
+<div class="import-overlay" id="import-overlay" onclick="if(event.target===this)closeImport()">
+  <div class="import-modal">
+    <h3>Import shipping costs</h3>
+    <div class="import-sub">Paste a supplier table — from a spreadsheet, email, or PDF. Map each column below so the tracker knows what's what.</div>
+    <textarea id="import-paste" placeholder="Paste supplier data here…" oninput="onImportPaste()"></textarea>
+
+    <!-- Column mapping (shown once columns are detected) -->
+    <div class="col-map-section" id="col-map-section" style="display:none;">
+      <div class="col-map-label">Map columns</div>
+      <table class="col-map-table">
+        <thead><tr><th>#</th><th>Sample values</th><th>Means…</th></tr></thead>
+        <tbody id="col-map-body"></tbody>
+      </table>
+      <div class="col-map-warn" id="col-map-warn"></div>
+    </div>
+
+    <div class="import-rate-row">
+      <label id="import-rate-label">SGD</label>
+      <span class="rate-badge" id="import-rate-badge"></span>
+      <span class="rate-note" id="import-rate-note"></span>
+    </div>
+    <div class="import-preview" id="import-preview"></div>
+    <div class="import-err" id="import-err">No rows detected — check the pasted content and try again.</div>
+    <div class="import-modal-btns" style="margin-top:14px;">
+      <button class="import-cancel-btn" onclick="closeImport()">Cancel</button>
+      <button class="import-confirm-btn" id="import-confirm-btn" onclick="confirmImport()" disabled>Add to shipping</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SUPABASE PERSISTENCE ───────────────────────────────────────
+const SUPABASE_URL = 'https://bjnuqlsknfirywtmynpp.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_pra2_IemArxD3GBujg3VZg_EBG8_RHS';
+const RECORD_ID    = 'main';
+// ⚠️  Change this to your own password before deploying!
+const EDIT_PASSWORD = 'ilovechimbi';
+
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── EDIT MODE ──────────────────────────────────────────────────
+let _editMode = false;
+
+function tryEditKey() {
+  const val = document.getElementById('edit-key-input').value;
+  if (val === EDIT_PASSWORD) {
+    _editMode = true;
+    sessionStorage.setItem('gifting-edit', '1');
+    document.body.classList.remove('read-only');
+    document.body.classList.add('edit-mode');
+    document.getElementById('banner-err').classList.remove('show');
+  } else {
+    document.getElementById('banner-err').classList.add('show');
+    document.getElementById('edit-key-input').value = '';
+  }
+}
+
+function initEditMode() {
+  if (sessionStorage.getItem('gifting-edit') === '1') {
+    _editMode = true;
+    document.body.classList.remove('read-only');
+    document.body.classList.add('edit-mode');
+  } else {
+    document.body.classList.add('read-only');
+  }
+}
+
+// ── SAVE ───────────────────────────────────────────────────────
+let _saveTimer = null;
+function saveState() {
+  if (!_editMode) return; // read-only visitors never write
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(_doSave, 800); // debounce 800 ms
+}
+
+async function _doSave() {
+  const activePanel = document.querySelector('.tab-content.active');
+  const activeId = activePanel ? activePanel.id.replace('panel-','') : null;
+  const state = {
+    suppliers,
+    nextId,
+    statusOptions,
+    activeId,
+    savedAt: new Date().toISOString(),
+    lastYear: {
+      gifts:  String(lastYearData.gifts),
+      ship:   String(lastYearData.ship),
+      duties: String(lastYearData.duties),
+    },
+  };
+
+  const el = document.getElementById('refreshStamp');
+  if (el) el.innerHTML = `<span class="status-dot saving"></span>Saving…`;
+
+  const { error } = await _sb.from('tracker_state').upsert({ id: RECORD_ID, state });
+  if (error) {
+    console.error('Supabase save error', error);
+    if (el) el.innerHTML = `<span class="status-dot" style="background:#E24B4A;opacity:1;"></span>Save failed`;
+    return;
+  }
+  const now = new Date();
+  const stamp = `Last updated ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})}`;
+  if (el) el.innerHTML = `<span class="status-dot live"></span>${stamp}`;
+}
+
+// ── LOAD ───────────────────────────────────────────────────────
+async function loadState() {
+  const el = document.getElementById('refreshStamp');
+  try {
+    const { data, error } = await _sb.from('tracker_state').select('state').eq('id', RECORD_ID).single();
+    if (error || !data) return;
+    const state = data.state;
+    if (Array.isArray(state.statusOptions) && state.statusOptions.length > 0) {
+      statusOptions = state.statusOptions;
+    }
+    if (Array.isArray(state.suppliers) && state.suppliers.length > 0) {
+      suppliers = state.suppliers;
+      nextId = state.nextId || 10;
+      suppliers.forEach(sup => {
+        sup.items.forEach(item => {
+          if (item.rate == null && item.amount != null) {
+            const qty = parseInt(item.qty) || 1;
+            item.rate = Math.round((parseFloat(item.amount) / qty) * 100) / 100;
+          }
+        });
+      });
+    }
+    window._restoreActiveId = state.activeId || null;
+    if (state.lastYear) window._restoreLastYear = state.lastYear;
+    if (state.savedAt) {
+      const d = new Date(state.savedAt);
+      const stamp = `Last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})}`;
+      if (el) el.innerHTML = `<span class="status-dot live"></span>${stamp}`;
+    }
+  } catch(e) {
+    console.error('loadState failed', e);
+    if (el) el.innerHTML = `<span class="status-dot"></span>Could not load`;
+  }
+}
+// ── END PERSISTENCE ────────────────────────────────────────────
+
+let statusOptions = [
+  { value: 'confirmed', label: 'Confirmed', badge: 'b-green' },
+  { value: 'confirmed-moq', label: 'Confirmed pending MOQ', badge: 'b-green' },
+  { value: 'gap', label: 'Gap — needs supplier', badge: 'b-amber' },
+  { value: 'unverified', label: 'Verify shipping rates', badge: 'b-amber' },
+  { value: 'eliminated', label: 'Eliminated', badge: 'b-red' },
+];
+
+let suppliers = [
+  {
+    id: 'us', name: 'US supplier (TBD)', region: 'US + Canada', recipients: 31, status: 'gap', shipKey: 'us',
+    items: [
+      { label: 'Gift box (product est.)', qty: 31, amount: 0, type: 'gift', country: '' },
+      { label: 'Custom packaging (est.)', qty: 31, amount: 0, type: 'gift', country: '' },
+      { label: 'US domestic shipping (est.)', qty: 31, amount: 0, type: 'shipping', country: 'United States' },
+    ]
+  },
+  {
+    id: 'merchery', name: 'Merchery', region: 'Europe + Middle East', recipients: 33, status: 'confirmed-moq', shipKey: 'merch',
+    items: [
+      { label: 'Gift products (est.)', qty: 33, amount: 0, type: 'gift', country: '' },
+      { label: 'Shipping (Merchery quote)', qty: 33, amount: 1268, type: 'shipping', country: 'UK, France, Finland, Slovakia, Portugal, Cyprus, UAE, Israel' },
+      { label: 'EU import VAT / customs', qty: 1, amount: 0, type: 'customs', country: '' },
+    ]
+  },
+  {
+    id: 'doyuk-tr', name: 'Doyuk', region: 'Turkey + Istanbul', recipients: 8, status: 'confirmed', shipKey: 'doyuk',
+    items: [
+      { label: 'Gift products', qty: 8, amount: 0, type: 'gift', country: '' },
+      { label: 'Domestic shipping Turkey', qty: 8, amount: 93, type: 'shipping', country: 'Turkey' },
+    ]
+  },
+  {
+    id: 'doyuk-asia', name: 'Doyuk (unverified)', region: 'Asia-Pacific', recipients: 21, status: 'unverified', shipKey: 'asia',
+    items: [
+      { label: 'Gift products (est.)', qty: 21, amount: 0, type: 'gift', country: '' },
+      { label: 'Intl. shipping Turkey → Asia (est.)', qty: 21, amount: 0, type: 'shipping', country: 'China, Hong Kong, South Korea, Australia' },
+      { label: 'Import duties / customs (est.)', qty: 1, amount: 0, type: 'customs', country: '' },
+    ]
+  },
+];
+
+let nextId = 10;
+
+function opt(s) { return statusOptions.find(o => o.value === s) || statusOptions[2]; }
+
+function getShipRegion(sup) {
+  const countries = sup.items
+    .filter(i => i.type === 'shipping' && i.country && i.country.trim())
+    .map(i => i.country.trim())
+    .join(', ');
+  return countries || null;
+}
+
+// Country → region bucket mapping
+const REGION_MAP = {
+  // North America
+  'United States': 'US + Canada', 'USA': 'US + Canada', 'US': 'US + Canada',
+  'Canada': 'US + Canada',
+  // Europe
+  'UK': 'Europe', 'United Kingdom': 'Europe', 'France': 'Europe', 'Germany': 'Europe',
+  'Finland': 'Europe', 'Slovakia': 'Europe', 'Portugal': 'Europe', 'Spain': 'Europe',
+  'Italy': 'Europe', 'Netherlands': 'Europe', 'Belgium': 'Europe', 'Sweden': 'Europe',
+  'Norway': 'Europe', 'Denmark': 'Europe', 'Poland': 'Europe', 'Switzerland': 'Europe',
+  'Austria': 'Europe', 'Ireland': 'Europe', 'Greece': 'Europe', 'Czech Republic': 'Europe',
+  'Hungary': 'Europe', 'Romania': 'Europe', 'Croatia': 'Europe',
+  // Middle East
+  'UAE': 'Middle East', 'Israel': 'Middle East', 'Saudi Arabia': 'Middle East',
+  'Qatar': 'Middle East', 'Kuwait': 'Middle East', 'Bahrain': 'Middle East',
+  'Jordan': 'Middle East', 'Lebanon': 'Middle East',
+  // Turkey
+  'Turkey': 'Turkey',
+  // Asia-Pacific
+  'China': 'Asia-Pacific', 'Hong Kong': 'Asia-Pacific', 'South Korea': 'Asia-Pacific',
+  'Korea': 'Asia-Pacific', 'Japan': 'Asia-Pacific', 'Singapore': 'Asia-Pacific',
+  'Australia': 'Asia-Pacific', 'New Zealand': 'Asia-Pacific', 'India': 'Asia-Pacific',
+  'Thailand': 'Asia-Pacific', 'Vietnam': 'Asia-Pacific', 'Malaysia': 'Asia-Pacific',
+  'Indonesia': 'Asia-Pacific', 'Philippines': 'Asia-Pacific', 'Taiwan': 'Asia-Pacific',
+  // Africa
+  'South Africa': 'Africa', 'Nigeria': 'Africa', 'Kenya': 'Africa', 'Egypt': 'Africa',
+  // Latin America
+  'Brazil': 'Latin America', 'Mexico': 'Latin America', 'Argentina': 'Latin America',
+  'Colombia': 'Latin America', 'Chile': 'Latin America',
+};
+
+function deriveRegion(sup) {
+  const buckets = new Set();
+  sup.items
+    .filter(i => i.type === 'shipping' && i.country && i.country.trim())
+    .forEach(i => {
+      i.country.split(',').forEach(c => {
+        const t = c.trim();
+        if (!t) return;
+        const bucket = REGION_MAP[t] || t;
+        buckets.add(bucket);
+      });
+    });
+  if (buckets.size === 0) return sup.region || '';
+  return Array.from(buckets).join(' + ');
+}
+
+function getGiftCost(r) { return (parseFloat(document.getElementById('gift-cost-out').value) || 0) * r; }
+function getShipTotal(sup) {
+  return sup.items.filter(i=>i.type==='shipping').reduce((a,i)=>a+(parseFloat(i.amount)||0),0);
+}
+
+function getActualGiftCost(sup) {
+  const cur = sup.currency || 'SGD';
+  const fx = parseFloat(sup.fxRate) || getCurrencyDefaultRate(cur);
+  return sup.items.filter(i => i.type === 'gift').reduce((a, i) => {
+    const rate = i.rate != null ? parseFloat(i.rate) : (parseFloat(i.amount) || 0);
+    const qty = parseInt(i.qty) || 1;
+    const sgd = cur === 'SGD' ? rate * qty : Math.round(rate * fx * qty * 100) / 100;
+    return a + sgd;
+  }, 0);
+}
+
+function getActualShipCost(sup) {
+  const cur = sup.currency || 'SGD';
+  const fx = parseFloat(sup.fxRate) || getCurrencyDefaultRate(cur);
+  return sup.items.filter(i => i.type === 'shipping').reduce((a, i) => {
+    const rate = i.rate != null ? parseFloat(i.rate) : (parseFloat(i.amount) || 0);
+    const qty = parseInt(i.qty) || 1;
+    const sgd = cur === 'SGD' ? rate * qty : Math.round(rate * fx * qty * 100) / 100;
+    return a + sgd;
+  }, 0);
+}
+
+function getActualCustomsCost(sup) {
+  const cur = sup.currency || 'SGD';
+  const fx = parseFloat(sup.fxRate) || getCurrencyDefaultRate(cur);
+  return sup.items.filter(i => i.type === 'customs').reduce((a, i) => {
+    const rate = i.rate != null ? parseFloat(i.rate) : (parseFloat(i.amount) || 0);
+    const qty = parseInt(i.qty) || 1;
+    const sgd = cur === 'SGD' ? rate * qty : Math.round(rate * fx * qty * 100) / 100;
+    return a + sgd;
+  }, 0);
+}
+
+function getActualRecipients(sup) {
+  const giftItems = sup.items.filter(i => i.type === 'gift');
+  if (giftItems.length === 0) return 0;
+  return Math.max(...giftItems.map(i => parseInt(i.qty) || 0));
+}
+
+function getCurrencyDefaultRate(cur) {
+  const defaults = { 'SGD': 1, 'EUR': 1.4816, 'USD': 1.3412, 'TRY': 0.0388 };
+  return defaults[cur] || 1;
+}
+
+function calcShipSGD(si, ii) { return calcItemSGD(si, ii); }
+
+function calcItemSGD(si, ii) {
+  const sup = suppliers[si];
+  const item = sup.items[ii];
+  const cur = sup.currency || 'SGD';
+  const fx = parseFloat(sup.fxRate) || getCurrencyDefaultRate(cur);
+  const rate = parseFloat(item.rate) || 0;
+  const qty = parseInt(item.qty) || 1;
+  if (cur === 'SGD') return Math.round(rate * qty * 100) / 100;
+  return Math.round(rate * fx * qty * 100) / 100;
+}
+
+function syncShipAmounts(si) {
+  const sup = suppliers[si];
+  sup.items.forEach((item, ii) => {
+    if (item.type === 'shipping') {
+      suppliers[si].items[ii].amount = calcShipSGD(si, ii);
+    }
+  });
+}
+
+function fmtSGD(val) {
+  return 'S$ ' + (val || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function toggleBreakdown(which) {
+  const bd = document.getElementById('breakdown-'+which);
+  const btn = document.getElementById('toggle-'+which);
+  const open = bd.classList.toggle('open');
+  btn.textContent = open ? '▲' : '▼';
+}
+
+function renderOverview() {
+  const tbody = document.getElementById('overview-tbody');
+  const tfoot = document.getElementById('overview-tfoot');
+  tbody.innerHTML = '';
+  let tG=0, tS=0, tAll=0, tR=0;
+  const ceiling = 13000;
+
+  suppliers.forEach(sup => {
+    const gifts = getActualGiftCost(sup);
+    const ship = getActualShipCost(sup) + getActualCustomsCost(sup);
+    const total = gifts + ship;
+    tG+=gifts; tS+=ship; tAll+=total; tR+=sup.recipients;
+    const regionText = sup.region || '—';
+    tbody.innerHTML += `<tr>
+      <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="font-weight:500">${sup.name}</span></td>
+      <td style="opacity:0.6;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${regionText}</td>
+      <td>${sup.recipients}</td>
+      <td>S$${gifts.toLocaleString()}</td>
+      <td>S$${ship.toLocaleString()}</td>
+      <td><strong style="font-weight:600">S$${total.toLocaleString()}</strong></td>
+      <td><span class="badge ${opt(sup.status).badge}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:inline-block">${opt(sup.status).label}</span></td>
+    </tr>`;
+  });
+
+  tfoot.innerHTML = `<tr>
+    <td colspan="3">Total (${tR} recipients)</td>
+    <td>${fmtSGD(tG)}</td>
+    <td>${fmtSGD(tS)}</td>
+    <td>${fmtSGD(tAll)}</td>
+    <td></td>
+  </tr>`;
+
+  // Count unique countries across all suppliers
+  const allCountries = new Set();
+  suppliers.forEach(sup => {
+    sup.items.filter(i => i.type === 'shipping' && i.country).forEach(i => {
+      i.country.split(',').forEach(c => { const t = c.trim(); if (t) allCountries.add(t); });
+    });
+  });
+  const countryCount = allCountries.size || '—';
+
+  // Update this-year card — total = sum of all actual costs (non-editable)
+  const cardLabel = document.getElementById('card-current-label');
+  const cardVal = document.getElementById('card-current-val');
+  const cardStatus = document.getElementById('card-current-status');
+  const bdGifts = document.getElementById('bd-current-gifts');
+  const bdShip = document.getElementById('bd-current-ship');
+
+  if (cardLabel) cardLabel.textContent = `This year (${tR} gifts across ${countryCount} countries)`;
+  if (cardVal) { cardVal.textContent = fmtSGD(tAll); cardVal.style.color = 'var(--dark)'; }
+
+  const tShipOnly = suppliers.reduce((a, s) => a + getActualShipCost(s), 0);
+  const tDuties   = suppliers.reduce((a, s) => a + getActualCustomsCost(s), 0);
+
+  const pctG = tAll > 0 ? Math.round(tG / tAll * 100) : 0;
+  const pctS = tAll > 0 ? Math.round(tShipOnly / tAll * 100) : 0;
+  const pctD = tAll > 0 ? Math.round(tDuties / tAll * 100) : 0;
+
+  if (bdGifts) bdGifts.textContent = fmtSGD(tG);
+  if (bdShip) bdShip.textContent = fmtSGD(tShipOnly);
+  const bdDuties = document.getElementById('bd-current-duties');
+  if (bdDuties) bdDuties.textContent = fmtSGD(tDuties);
+
+  const bdCpr = document.getElementById('bd-current-cpr');
+  if (bdCpr) bdCpr.textContent = tR > 0 ? fmtSGD(Math.round(tAll / tR)) : 'S$ —';
+
+  const bdGiftsLabel = document.getElementById('bd-current-gifts-label');
+  const bdShipLabel = document.getElementById('bd-current-ship-label');
+  const bdDutiesLabel = document.getElementById('bd-current-duties-label');
+  if (bdGiftsLabel) bdGiftsLabel.textContent = tAll > 0 ? `total cost of gifts (${pctG}%)` : 'total cost of gifts';
+  if (bdShipLabel) bdShipLabel.textContent = tAll > 0 ? `shipping costs (${pctS}%)` : 'shipping costs';
+  if (bdDutiesLabel) bdDutiesLabel.textContent = tAll > 0 ? `duties & customs (${pctD}%)` : 'duties & customs';
+
+  // Budget monitor: read budgets from the editable inputs, fill bars proportionally
+  const budgetGift = 1;
+  const budgetShip = 1;
+  const budgetDuty = 1;
+  const budgetTotal = 1;
+
+  const LAST_YEAR_RECIPIENTS = 100;
+  const LAST_YEAR_TOTAL = lastYearData.gifts + lastYearData.ship + lastYearData.duties;
+  const lastYearCpr = LAST_YEAR_RECIPIENTS > 0 ? LAST_YEAR_TOTAL / LAST_YEAR_RECIPIENTS : 0;
+  const thisCpr = tR > 0 ? tAll / tR : 0;
+  if (cardStatus) {
+    if (tAll === 0 || tR === 0) {
+      cardStatus.innerHTML = '';
+    } else {
+      const diff = lastYearCpr - thisCpr;
+      const absDiff = Math.abs(diff);
+      const pctDiff = lastYearCpr > 0 ? Math.round(absDiff / lastYearCpr * 100) : 0;
+      if (diff >= 0) {
+        cardStatus.innerHTML = `<span class="sum-card-dot" style="background:#1D9E75"></span><span style="color:#0F6E56;font-weight:500">${fmtSGD(Math.round(absDiff))} (${pctDiff}%) under last year</span>`;
+      } else {
+        cardStatus.innerHTML = `<span class="sum-card-dot" style="background:#E24B4A"></span><span style="color:#A32D2D;font-weight:500">${fmtSGD(Math.round(absDiff))} (${pctDiff}%) over last year</span>`;
+      }
+    }
+  }
+
+  saveState();
+}
+
+// ── COMPARE MODE ──────────────────────────────────────────────
+const compareShip = {};
+
+function toggleCompareShip(si) {
+  compareShip[si] = !compareShip[si];
+  rebuildPanel(si);
+}
+
+// For a given row's country, find matching shipping items in other suppliers and return their SGD rate
+function buildCompareCell(si, itemCountry, thisRateSGD) {
+  const others = suppliers.filter((_, i) => i !== si);
+  if (others.length === 0) return '<td class="cmp-cell" style="font-size:11px;opacity:0.4;font-style:italic;">—</td>';
+
+  const fmtS = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  const pills = others.map(s => {
+    const name = s.name.length > 16 ? s.name.slice(0, 14) + '…' : s.name;
+    const sCur = s.currency || 'SGD';
+    const sFx = parseFloat(s.fxRate) || getCurrencyDefaultRate(sCur);
+    const matched = s.items.filter(i => {
+      if (i.type !== 'shipping') return false;
+      if (!i.country) return false;
+      return i.country.split(',').some(c => {
+        const ct = c.trim().toLowerCase();
+        return itemCountry && (
+          ct === itemCountry.toLowerCase() ||
+          itemCountry.toLowerCase().includes(ct) ||
+          ct.includes(itemCountry.toLowerCase())
+        );
+      });
+    });
+
+    let rateSGDDisplay = '—';
+    let pillStyle = 'color:#1a4a6e;';
+    let indicator = '';
+
+    if (matched.length > 0) {
+      const mItem = matched[0];
+      const mRate = mItem.rate != null ? parseFloat(mItem.rate) : (parseFloat(mItem.amount) || 0);
+      const mRateSGD = sCur === 'SGD' ? mRate : Math.round(mRate * sFx * 100) / 100;
+      if (mRateSGD > 0) {
+        rateSGDDisplay = 'S$' + fmtS(mRateSGD);
+        // Compare against this row's own rate
+        if (thisRateSGD > 0) {
+          if (mRateSGD > thisRateSGD) {
+            // Other supplier is more expensive — red
+            pillStyle = 'color:#A32D2D;font-weight:700;';
+            indicator = '<span style="font-size:9px;margin-left:3px;opacity:0.8;">▲</span>';
+          } else if (mRateSGD < thisRateSGD) {
+            // Other supplier is cheaper — green
+            pillStyle = 'color:#0F6E56;font-weight:700;';
+            indicator = '<span style="font-size:9px;margin-left:3px;opacity:0.8;">▼</span>';
+          } else {
+            indicator = '<span style="font-size:9px;margin-left:3px;opacity:0.5;">=</span>';
+          }
+        }
+      }
+    }
+
+    return `<div class="cmp-pill">
+      <span class="cmp-pill-name">${name}</span>
+      <span class="cmp-pill-val" style="${pillStyle}">${rateSGDDisplay}${indicator}</span>
+    </div>`;
+  }).join('');
+
+  return `<td class="cmp-cell">${pills}</td>`;
+}
+// ── END COMPARE MODE ───────────────────────────────────────────
+
+function buildPanel(sup, si) {
+  const gifts = getActualGiftCost(sup);
+  const ship = getActualShipCost(sup) + getActualCustomsCost(sup);
+  const total = gifts + ship;
+  const gpu = sup.recipients > 0 ? Math.round(total/sup.recipients) : 0;
+  const derivedRegion = deriveRegion(sup);
+
+  const emptyRow = (msg, cols) => `<tr><td colspan="${cols||4}" style="opacity:0.35;padding:8px;font-size:12px;font-style:italic">${msg}</td></tr>`;
+
+  function makeGiftRows() {
+    const cur = sup.currency || 'SGD';
+    const fx = parseFloat(sup.fxRate) || getCurrencyDefaultRate(cur);
+    return sup.items.map((item, ii) => {
+      if (item.type !== 'gift') return '';
+      const rate = item.rate != null ? parseFloat(item.rate) : (parseFloat(item.amount) || 0);
+      const qty = parseInt(item.qty) || 1;
+      const rateSGD = cur === 'SGD' ? rate : Math.round(rate * fx * 100) / 100;
+      const totalForeign = rate * qty;
+      const totalSGD = Math.round(rateSGD * qty * 100) / 100;
+      suppliers[si].items[ii].amount = totalSGD;
+      const fmtF = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      const fmtS = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      return `<tr>
+        <td><input type="text" value="${esc(item.label)}" oninput="suppliers[${si}].items[${ii}].label=this.value;syncPanel(${si})"></td>
+        <td><input type="text" class="qty" value="${qty}" oninput="suppliers[${si}].items[${ii}].qty=parseInt(this.value)||1;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
+        ${cur !== 'SGD' ? `<td><input type="text" class="num" value="${rate > 0 ? rate : ''}" placeholder="0.00" oninput="suppliers[${si}].items[${ii}].rate=parseFloat(this.value)||0;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
+        <td class="num-cell">${fmtF(totalForeign)}</td>
+        <td class="num-cell num-cell-muted">${rateSGD > 0 ? fmtS(rateSGD) : '—'}</td>
+        <td class="num-cell num-cell-bold">${fmtS(totalSGD)}</td>`
+        : `<td><input type="text" class="num" value="${rate > 0 ? rate : ''}" placeholder="0.00" oninput="suppliers[${si}].items[${ii}].rate=parseFloat(this.value)||0;suppliers[${si}].items[${ii}].amount=parseFloat(this.value)*(parseInt(suppliers[${si}].items[${ii}].qty)||1);syncPanel(${si})"></td>
+        <td class="num-cell num-cell-bold">${totalSGD > 0 ? fmtS(totalSGD) : '—'}</td>`}
+        <td><button class="del-btn" onclick="suppliers[${si}].items.splice(${ii},1);rebuildPanel(${si});renderOverview()">×</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function makeShipRows() {
+    const cur = sup.currency || 'SGD';
+    const fx = parseFloat(sup.fxRate) || getCurrencyDefaultRate(cur);
+    return sup.items.map((item, ii) => {
+      if (item.type !== 'shipping') return '';
+      const rate = item.rate != null ? parseFloat(item.rate) : (parseFloat(item.amount) || 0);
+      const qty = parseInt(item.qty) || 1;
+      const rateSGD = cur === 'SGD' ? rate : Math.round(rate * fx * 100) / 100;
+      const totalForeign = rate * qty;
+      const totalSGD = Math.round(rateSGD * qty * 100) / 100;
+      suppliers[si].items[ii].amount = totalSGD;
+      const fmtF = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      const fmtS = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      // Per-row compare cell, matched by this item's country
+      const cmpCell = compareShip[si] ? buildCompareCell(si, item.country || '', rateSGD) : '';
+      return `<tr>
+        <td><input type="text" value="${esc(item.label)}" oninput="suppliers[${si}].items[${ii}].label=this.value;syncPanel(${si})"></td>
+        <td><input type="text" class="qty" value="${qty}" oninput="suppliers[${si}].items[${ii}].qty=parseInt(this.value)||1;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
+        ${cur !== 'SGD'
+          ? `<td><input type="text" class="num" value="${rate > 0 ? rate : ''}" placeholder="0.00" oninput="suppliers[${si}].items[${ii}].rate=parseFloat(this.value)||0;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
+             <td class="num-cell">${fmtF(totalForeign)}</td>
+             <td class="num-cell num-cell-muted">${rateSGD > 0 ? fmtS(rateSGD) : '—'}</td>
+             ${cmpCell}
+             <td class="num-cell num-cell-bold">${fmtS(totalSGD)}</td>`
+          : `<td><input type="text" class="num" value="${rate > 0 ? rate : ''}" placeholder="0.00" oninput="suppliers[${si}].items[${ii}].rate=parseFloat(this.value)||0;suppliers[${si}].items[${ii}].amount=parseFloat(this.value)*(parseInt(suppliers[${si}].items[${ii}].qty)||1);syncPanel(${si})"></td>
+             ${cmpCell}
+             <td class="num-cell num-cell-bold">${totalSGD > 0 ? fmtS(totalSGD) : '—'}</td>`}
+        <td><button class="del-btn" onclick="suppliers[${si}].items.splice(${ii},1);rebuildPanel(${si});renderOverview()">×</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function makeCustomsRows() {
+    const cur = sup.currency || 'SGD';
+    const fx = parseFloat(sup.fxRate) || getCurrencyDefaultRate(cur);
+    return sup.items.map((item, ii) => {
+      if (item.type !== 'customs') return '';
+      const rate = item.rate != null ? parseFloat(item.rate) : (parseFloat(item.amount) || 0);
+      const qty = parseInt(item.qty) || 1;
+      const rateSGD = cur === 'SGD' ? rate : Math.round(rate * fx * 100) / 100;
+      const totalForeign = rate * qty;
+      const totalSGD = Math.round(rateSGD * qty * 100) / 100;
+      suppliers[si].items[ii].amount = totalSGD;
+      const fmtF = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      const fmtS = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      return `<tr>
+        <td><input type="text" value="${esc(item.label)}" oninput="suppliers[${si}].items[${ii}].label=this.value;syncPanel(${si})"></td>
+        <td><input type="text" class="qty" value="${qty}" oninput="suppliers[${si}].items[${ii}].qty=parseInt(this.value)||1;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
+        ${cur !== 'SGD' ? `<td><input type="text" class="num" value="${rate > 0 ? rate : ''}" placeholder="0.00" oninput="suppliers[${si}].items[${ii}].rate=parseFloat(this.value)||0;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
+        <td class="num-cell">${fmtF(totalForeign)}</td>
+        <td class="num-cell num-cell-muted">${rateSGD > 0 ? fmtS(rateSGD) : '—'}</td>
+        <td class="num-cell num-cell-bold">${fmtS(totalSGD)}</td>`
+        : `<td><input type="text" class="num" value="${rate > 0 ? rate : ''}" placeholder="0.00" oninput="suppliers[${si}].items[${ii}].rate=parseFloat(this.value)||0;suppliers[${si}].items[${ii}].amount=parseFloat(this.value)*(parseInt(suppliers[${si}].items[${ii}].qty)||1);syncPanel(${si})"></td>
+        <td class="num-cell num-cell-bold">${totalSGD > 0 ? fmtS(totalSGD) : '—'}</td>`}
+        <td><button class="del-btn" onclick="suppliers[${si}].items.splice(${ii},1);rebuildPanel(${si});renderOverview()">×</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  const curOpts = ['SGD','EUR','USD','TRY'].map(c => `<option value="${c}"${(sup.currency||'SGD')===c?' selected':''}>${c}</option>`).join('');
+  const fxVal = sup.fxRate != null ? sup.fxRate : getCurrencyDefaultRate(sup.currency || 'SGD');
+  const statusOpts = statusOptions.map(o => `<option value="${o.value}"${sup.status===o.value?' selected':''}>${o.label}</option>`).join('');
+  const regionDisplay = sup.region || '';
+
+  return `
+    <div class="detail-grid" style="grid-template-columns:repeat(5,minmax(0,1fr));">
+      <div class="detail-metric"><div class="mlabel">Cost per recipient</div><div class="mval" id="dp-gpu-${si}">${fmtSGD(gpu)}</div></div>
+      <div class="detail-metric"><div class="mlabel">Total cost</div><div class="mval" id="dp-total-${si}">${fmtSGD(total)}</div></div>
+      <div class="detail-metric"><div class="mlabel">Total gift cost</div><div class="mval" id="dp-gifts-${si}">${fmtSGD(gifts)}</div></div>
+      <div class="detail-metric"><div class="mlabel">Total shipping cost</div><div class="mval" id="dp-shiponly-${si}">${fmtSGD(getActualShipCost(sup))}</div></div>
+      <div class="detail-metric"><div class="mlabel">Total duties cost</div><div class="mval" id="dp-duties-${si}">${fmtSGD(getActualCustomsCost(sup))}</div></div>
+    </div>
+    <div class="meta-row" style="justify-content:flex-start;">
+      <label>Recipients</label>
+      <span id="dp-recipients-${si}" style="font-size:13px;font-weight:600;color:var(--dark);min-width:32px;display:inline-block;">${getActualRecipients(sup)}</span>
+      <label>Status</label>
+      <select onchange="suppliers[${si}].status=this.value;renderOverview()">${statusOpts}</select>
+      <button class="edit-statuses-btn" onclick="openStatusModal()" title="Edit status list">✎</button>
+      <label>Region</label>
+      <input type="text" id="region-display-${si}" value="${esc(regionDisplay)}" placeholder="e.g. Asia-Pacific" style="border:var(--border);border-radius:0;padding:5px 8px;font-size:13px;font-weight:500;color:var(--dark);outline:none;background:var(--white);font-family:'Inter',sans-serif;width:160px;" oninput="suppliers[${si}].region=this.value;renderOverview()">
+      <label>Website</label>
+      <div id="url-display-wrap-${si}" style="display:inline-flex;align-items:center;gap:4px;">
+        ${sup.url ? `<a id="url-link-${si}" href="${esc(sup.url)}" target="_blank" rel="noopener" style="font-size:13px;font-weight:500;color:var(--dark);text-decoration:none;border-bottom:1px solid rgba(22,44,54,0.25);padding:5px 2px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;" title="${esc(sup.url)}">${esc(sup.url.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a>` : `<span style="font-size:13px;opacity:0.35;padding:5px 2px;">—</span>`}
+        <button onclick="supStartUrlEdit(${si})" style="background:none;border:none;cursor:pointer;padding:3px 5px;opacity:0.35;font-size:11px;font-family:'Inter',sans-serif;color:var(--dark);flex-shrink:0;" title="Edit URL">✎</button>
+      </div>
+      <input type="text" id="url-input-${si}" value="${esc(sup.url||'')}" placeholder="https://supplier.com" style="display:none;border:var(--border);border-radius:0;padding:5px 8px;font-size:13px;color:var(--dark);outline:none;background:var(--white);font-family:'Inter',sans-serif;width:200px;"
+        onblur="supEndUrlEdit(${si})"
+        onkeydown="if(event.key==='Enter'||event.key==='Escape')this.blur()"
+        oninput="suppliers[${si}].url=this.value">
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;border:var(--border);border-radius:0;padding:5px 10px;background:var(--bg);">
+        <label style="opacity:0.55;font-size:11px;white-space:nowrap;">Shipping currency</label>
+        <select style="border:none;background:transparent;font-size:13px;font-weight:600;color:var(--dark);outline:none;cursor:pointer;font-family:'Inter',sans-serif;" onchange="suppliers[${si}].currency=this.value;suppliers[${si}].fxRate=getCurrencyDefaultRate(this.value);rebuildPanel(${si});renderOverview()">${curOpts}</select>
+        ${(sup.currency && sup.currency !== 'SGD') ? `<span style="font-size:11px;opacity:0.45;margin:0 2px;">1 ${sup.currency} =</span>
+        <input type="text" value="${fxVal}" style="width:60px;border:var(--border);border-radius:0;padding:3px 6px;font-size:12px;font-weight:600;text-align:right;color:var(--dark);background:var(--white);font-family:'Inter',sans-serif;outline:none;" oninput="suppliers[${si}].fxRate=parseFloat(this.value)||1;syncShipAmounts(${si});syncPanel(${si})">
+        <span style="font-size:11px;opacity:0.45;">SGD</span>` : ''}
+      </div>
+    </div>
+
+    <div class="section-block">
+      <div class="li-section-label">Gift items</div>
+      <table class="line-items" style="table-layout:fixed;">
+        ${(sup.currency && sup.currency !== 'SGD')
+          ? `<colgroup><col style="width:30%"><col style="width:8%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:15%"><col style="width:8%"></colgroup>
+             <thead><tr><th>Line item</th><th>Qty</th><th>Rate (${sup.currency})</th><th>Total (${sup.currency})</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
+          : `<colgroup><col style="width:44%"><col style="width:10%"><col style="width:18%"><col style="width:20%"><col style="width:8%"></colgroup>
+             <thead><tr><th>Line item</th><th>Qty</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
+        }
+        <tbody>${makeGiftRows() || emptyRow('No gift items yet', (sup.currency && sup.currency !== 'SGD') ? 7 : 5)}</tbody>
+        ${sup.items.filter(i=>i.type==='gift').length > 0 ? `<tfoot><tr style="border-top:var(--border);background:rgba(22,44,54,0.03);">
+          <td colspan="${(sup.currency && sup.currency !== 'SGD') ? 5 : 3}" style="padding:8px 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;opacity:0.5;">Total</td>
+          <td class="num-cell num-cell-bold" style="padding:8px 8px;">${fmtSGD(gifts, true)}</td>
+          <td></td>
+        </tr></tfoot>` : ''}
+      </table>
+      <div class="section-block-btns">
+        <button class="add-btn" onclick="suppliers[${si}].items.push({label:'Gift item',qty:1,rate:0,amount:0,type:'gift',country:''});rebuildPanel(${si});renderOverview()">+ Add gift item</button>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div class="li-section-label" id="ship-label-${si}" style="margin:0;">Shipping costs</div>
+        <button class="compare-toggle-btn${compareShip[si] ? ' active' : ''}" onclick="toggleCompareShip(${si})">
+          ${compareShip[si] ? '▧ Comparing' : '▤ Compare'}
+        </button>
+      </div>
+      <table class="line-items" style="table-layout:fixed;">
+        ${(sup.currency && sup.currency !== 'SGD')
+          ? `<colgroup><col style="width:26%"><col style="width:7%"><col style="width:11%"><col style="width:11%"><col style="width:11%">${compareShip[si] ? '<col style="width:13%">' : ''}<col style="width:13%"><col style="width:8%"></colgroup>
+             <thead><tr><th>Line item</th><th>Qty</th><th>Rate (${sup.currency})</th><th>Total (${sup.currency})</th><th>Rate (SGD)</th>${compareShip[si] ? '<th class="cmp-head">vs. others</th>' : ''}<th>Total (SGD)</th><th></th></tr></thead>`
+          : `<colgroup><col style="width:40%"><col style="width:9%"><col style="width:16%">${compareShip[si] ? '<col style="width:15%">' : ''}<col style="width:18%"><col style="width:8%"></colgroup>
+             <thead><tr><th>Line item</th><th>Qty</th><th>Rate (SGD)</th>${compareShip[si] ? '<th class="cmp-head">vs. others</th>' : ''}<th>Total (SGD)</th><th></th></tr></thead>`
+        }
+        <tbody>${makeShipRows() || emptyRow('No shipping items yet', (sup.currency && sup.currency !== 'SGD') ? (compareShip[si] ? 8 : 7) : (compareShip[si] ? 6 : 5))}</tbody>
+        ${sup.items.filter(i=>i.type==='shipping').length > 0 ? (() => {
+          const shipItems = sup.items.filter(i=>i.type==='shipping');
+          const totalQty = shipItems.reduce((a,i) => a + (parseInt(i.qty)||0), 0);
+          const cur = sup.currency || 'SGD';
+          const fx = parseFloat(sup.fxRate) || getCurrencyDefaultRate(cur);
+          const totalForeign = cur !== 'SGD' ? shipItems.reduce((a,i) => {
+            const rate = parseFloat(i.rate)||0; const qty = parseInt(i.qty)||1;
+            return a + Math.round(rate * qty * 100) / 100;
+          }, 0) : 0;
+          const footStyle = 'border-top:var(--border);background:rgba(22,44,54,0.03);';
+          const labelStyle = 'padding:8px 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;opacity:0.5;';
+          const numStyle = 'padding:8px 8px;';
+          if (cur !== 'SGD') {
+            return `<tfoot><tr style="${footStyle}">
+              <td style="${labelStyle}">Total</td>
+              <td class="num-cell num-cell-bold" style="${numStyle}">${totalQty}</td>
+              <td></td>
+              <td class="num-cell num-cell-bold" style="${numStyle}">${totalForeign.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+              <td></td>
+              ${compareShip[si] ? '<td class="cmp-cell"></td>' : ''}
+              <td class="num-cell num-cell-bold" style="${numStyle}">${fmtSGD(getActualShipCost(sup), true)}</td>
+              <td></td>
+            </tr></tfoot>`;
+          } else {
+            return `<tfoot><tr style="${footStyle}">
+              <td style="${labelStyle}">Total</td>
+              <td class="num-cell num-cell-bold" style="${numStyle}">${totalQty}</td>
+              <td></td>
+              ${compareShip[si] ? '<td class="cmp-cell"></td>' : ''}
+              <td class="num-cell num-cell-bold" style="${numStyle}">${fmtSGD(getActualShipCost(sup), true)}</td>
+              <td></td>
+            </tr></tfoot>`;
+          }
+        })() : ''}
+      </table>
+      <div class="section-block-btns">
+        <button class="add-btn" onclick="suppliers[${si}].items.push({label:'Shipping cost',qty:1,rate:0,amount:0,type:'shipping',country:''});rebuildPanel(${si});renderOverview()">+ Add shipping item</button>
+        <button class="import-btn" onclick="openImport(${si})"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.5 1v7M4 6l2.5 2.5L9 6M2 10h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Import from supplier</button>
+        ${sup.items.filter(i=>i.type==='shipping').length > 0 ? `<button class="remove-supplier-btn" style="margin-left:auto;" onclick="if(confirm('Remove all shipping items?')){suppliers[${si}].items=suppliers[${si}].items.filter(i=>i.type!=='shipping');rebuildPanel(${si});renderOverview()}">Remove all</button>` : ''}
+      </div>
+    </div>
+
+    <div class="section-block">
+      <div class="li-section-label">Customs &amp; duties</div>
+      <table class="line-items" style="table-layout:fixed;">
+        ${(sup.currency && sup.currency !== 'SGD')
+          ? `<colgroup><col style="width:30%"><col style="width:8%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:15%"><col style="width:8%"></colgroup>
+             <thead><tr><th>Line item</th><th>Qty</th><th>Rate (${sup.currency})</th><th>Total (${sup.currency})</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
+          : `<colgroup><col style="width:44%"><col style="width:10%"><col style="width:18%"><col style="width:20%"><col style="width:8%"></colgroup>
+             <thead><tr><th>Line item</th><th>Qty</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
+        }
+        <tbody>${makeCustomsRows() || emptyRow('None — add if applicable', (sup.currency && sup.currency !== 'SGD') ? 7 : 5)}</tbody>
+        ${sup.items.filter(i=>i.type==='customs').length > 0 ? `<tfoot><tr style="border-top:var(--border);background:rgba(22,44,54,0.03);">
+          <td colspan="${(sup.currency && sup.currency !== 'SGD') ? 5 : 3}" style="padding:8px 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;opacity:0.5;">Total</td>
+          <td class="num-cell num-cell-bold" style="padding:8px 8px;">${fmtSGD(getActualCustomsCost(sup), true)}</td>
+          <td></td>
+        </tr></tfoot>` : ''}
+      </table>
+      <div class="section-block-btns">
+        <button class="add-btn" onclick="suppliers[${si}].items.push({label:'Import duty / VAT',qty:1,rate:0,amount:0,type:'customs',country:''});rebuildPanel(${si});renderOverview()">+ Add customs item</button>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:0.5px solid rgba(22,44,54,0.1);">
+      <button class="remove-supplier-btn" onclick="removeSupplier(${si})">Remove supplier</button>
+    </div>`;
+}
+
+function esc(s) { return (s||'').replace(/"/g,'&quot;'); }
+
+function supStartUrlEdit(si) {
+  const wrap  = document.getElementById('url-display-wrap-' + si);
+  const input = document.getElementById('url-input-' + si);
+  if (!wrap || !input) return;
+  wrap.style.display  = 'none';
+  input.style.display = 'inline-block';
+  input.focus();
+  input.select();
+}
+
+function supEndUrlEdit(si) {
+  const wrap  = document.getElementById('url-display-wrap-' + si);
+  const input = document.getElementById('url-input-' + si);
+  if (!wrap || !input) return;
+  suppliers[si].url = input.value.trim();
+  // Rebuild just the display wrap content
+  const url = suppliers[si].url;
+  const display = url
+    ? `<a id="url-link-${si}" href="${url}" target="_blank" rel="noopener" style="font-size:13px;font-weight:500;color:var(--dark);text-decoration:none;border-bottom:1px solid rgba(22,44,54,0.25);padding:5px 2px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;" title="${url}">${url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a>`
+    : `<span style="font-size:13px;opacity:0.35;padding:5px 2px;">—</span>`;
+  wrap.innerHTML = display + `<button onclick="supStartUrlEdit(${si})" style="background:none;border:none;cursor:pointer;padding:3px 5px;opacity:0.35;font-size:11px;font-family:'Inter',sans-serif;color:var(--dark);flex-shrink:0;" title="Edit URL">✎</button>`;
+  wrap.style.display  = 'inline-flex';
+  input.style.display = 'none';
+  saveState();
+}
+
+function syncPanel(si) {
+  const sup = suppliers[si];
+  const recipients = getActualRecipients(sup);
+  sup.recipients = recipients;
+  const gifts = getActualGiftCost(sup);
+  const ship = getActualShipCost(sup) + getActualCustomsCost(sup);
+  const total = gifts + ship;
+  const gpu = recipients > 0 ? Math.round(total/recipients) : 0;
+  const t = document.getElementById('dp-total-'+si);
+  const gEl = document.getElementById('dp-gifts-'+si);
+  const sOnly = document.getElementById('dp-shiponly-'+si);
+  const dEl = document.getElementById('dp-duties-'+si);
+  const g = document.getElementById('dp-gpu-'+si);
+  const s = document.getElementById('dp-ship-'+si);
+  const r = document.getElementById('dp-recipients-'+si);
+  if (t) t.textContent = fmtSGD(total);
+  if (gEl) gEl.textContent = fmtSGD(gifts);
+  if (sOnly) sOnly.textContent = fmtSGD(getActualShipCost(sup));
+  if (dEl) dEl.textContent = fmtSGD(getActualCustomsCost(sup));
+  if (g) g.textContent = fmtSGD(gpu);
+  if (s) s.textContent = fmtSGD(ship);
+  if (r) r.textContent = recipients;
+  // Update region input only if it hasn't been manually focused
+  const rd = document.getElementById('region-display-'+si);
+  if (rd && document.activeElement !== rd) { rd.value = sup.region || ''; }
+  renderOverview();
+}
+
+function syncShipLabel(si) {
+  // No-op — country col removed; region updates via syncPanel
+}
+
+function syncRegion(si) {
+  const sup = suppliers[si];
+  sup.region = deriveRegion(sup);
+  const rd = document.getElementById('region-display-'+si);
+  if (rd) rd.textContent = sup.region || '—';
+  renderOverview();
+}
+
+function updateDestinations(si, value) {
+  // kept for backwards compat — no-op now
+}
+
+function removeSupplier(si) {
+  if (suppliers.length <= 1) return;
+  const sup = suppliers[si];
+  // Remove panel DOM
+  const panel = document.getElementById('panel-'+sup.id);
+  if (panel) panel.remove();
+  suppliers.splice(si, 1);
+  // Activate first remaining tab
+  const firstPanel = document.querySelector('.tab-content');
+  if (firstPanel) firstPanel.classList.add('active');
+  // Rebuild all panels (indices shift after splice)
+  renderAll();
+}
+
+function rebuildPanel(si) {
+  const sup = suppliers[si];
+  const panel = document.getElementById('panel-'+sup.id);
+  if (panel) panel.innerHTML = buildPanel(sup, si);
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  renderTabBar();
+  saveState();
+}
+
+function renderTabBar() {
+  const bar = document.getElementById('tab-bar');
+  const addBtn = document.getElementById('add-tab-btn');
+  const activePanel = document.querySelector('.tab-content.active');
+  const activeId = activePanel ? activePanel.id.replace('panel-','') : (suppliers[0]||{}).id;
+
+  bar.innerHTML = '';
+  suppliers.forEach((sup, si) => {
+    const isActive = sup.id === activeId;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;display:flex;align-items:stretch;flex-shrink:0;';
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = isActive ? 'tab-name-input' : 'tab-btn-input';
+    inp.value = sup.name;
+    inp.title = 'Click to switch · Type to rename';
+    inp.style.width = Math.max(40, sup.name.length * 8) + 'px';
+
+    inp.onclick = (e) => {
+      if (sup.id !== activeId) { e.preventDefault(); switchTab(sup.id); }
+    };
+    inp.oninput = () => {
+      suppliers[si].name = inp.value;
+      inp.style.width = Math.max(40, inp.value.length * 8) + 'px';
+      renderOverview();
+    };
+    wrap.appendChild(inp);
+    bar.appendChild(wrap);
+  });
+
+  bar.appendChild(addBtn);
+}
+
+function addSupplier() {
+  const id = 'sup-' + (nextId++);
+  suppliers.push({
+    id, name: 'New supplier', region: '', recipients: 0, status: 'gap', shipKey: 'custom',
+    items: [
+      { label: 'Gift item', qty: 1, amount: 0, type: 'gift', country: '' },
+      { label: 'Shipping cost', qty: 1, amount: 0, type: 'shipping', country: '' },
+    ]
+  });
+  const panels = document.getElementById('tab-panels');
+  const panel = document.createElement('div');
+  panel.className = 'tab-content active';
+  panel.id = 'panel-'+id;
+  document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+  panel.innerHTML = buildPanel(suppliers[suppliers.length-1], suppliers.length-1);
+  panels.appendChild(panel);
+  renderTabBar();
+  renderOverview();
+}
+
+function renderAll() {
+  // Sync recipients from gift qtys on load
+  suppliers.forEach(sup => { sup.recipients = getActualRecipients(sup); });
+  const panels = document.getElementById('tab-panels');
+  panels.innerHTML = '';
+  const restoreId = window._restoreActiveId;
+  const restoreExists = restoreId && suppliers.some(s => s.id === restoreId);
+  suppliers.forEach((sup, si) => {
+    const isActive = restoreExists ? sup.id === restoreId : si === 0;
+    const panel = document.createElement('div');
+    panel.className = 'tab-content'+(isActive?' active':'');
+    panel.id = 'panel-'+sup.id;
+    panel.innerHTML = buildPanel(sup, si);
+    panels.appendChild(panel);
+  });
+  window._restoreActiveId = null;
+  renderTabBar();
+  renderOverview();
+}
+
+document.getElementById('add-tab-btn').onclick = addSupplier;
+
+// ── IMPORT LOGIC ──────────────────────────────────────────────
+let importTargetSi = null;
+let importParsedRows = [];
+
+const CURRENCY_SYMBOLS = { EUR: '€', USD: '$', TRY: '₺', SGD: 'S$' };
+
+function getImportFx() {
+  if (importTargetSi === null) return { cur: 'SGD', fx: 1 };
+  const sup = suppliers[importTargetSi];
+  const cur = sup.currency || 'SGD';
+  const fx = parseFloat(sup.fxRate) || getCurrencyDefaultRate(cur);
+  return { cur, fx };
+}
+
+// ── COLUMN MAPPING IMPORT ─────────────────────────────────────
+// State for the column mapper
+let importColMapping = {}; // { colIndex: 'country'|'qty'|'rate'|'total'|'city'|'ignore' }
+let importDetectedCols = []; // array of { samples: [] }
+let importRawLines = [];
+
+const IMPORT_COUNTRIES = [
+  'Afghanistan','Albania','Algeria','Argentina','Armenia','Australia','Austria',
+  'Azerbaijan','Bahrain','Bangladesh','Belarus','Belgium','Bolivia','Brazil',
+  'Bulgaria','Cambodia','Canada','Chile','China','Colombia','Croatia','Cyprus',
+  'Czech Republic','Denmark','Ecuador','Egypt','Estonia','Ethiopia','Finland',
+  'France','Georgia','Germany','Ghana','Greece','Guatemala','Hong Kong','Hungary',
+  'Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Japan',
+  'Jordan','Kazakhstan','Kenya','Kuwait','Latvia','Lebanon','Lithuania','Luxembourg',
+  'Malaysia','Mexico','Morocco','Netherlands','New Zealand','Nigeria','Norway',
+  'Oman','Pakistan','Panama','Peru','Philippines','Poland','Portugal','Qatar',
+  'Romania','Russia','Saudi Arabia','Serbia','Singapore','Slovakia','Slovenia',
+  'South Africa','South Korea','Spain','Sri Lanka','Sweden','Switzerland',
+  'Taiwan','Thailand','Turkey','UAE','UK','Ukraine','United Kingdom',
+  'United States','Uruguay','USA','US','Uzbekistan','Venezuela','Vietnam',
+];
+const IMPORT_COUNTRIES_SORTED = [...IMPORT_COUNTRIES].sort((a,b) => b.length - a.length);
+
+function stripCurrency(s) {
+  // Remove currency symbols/prefix and return plain number string
+  return s.replace(/^S\$\s*/, '').replace(/[€$£₺,]/g, '').trim();
+}
+
+function looksNumeric(s) {
+  const v = parseFloat(stripCurrency(s));
+  return !isNaN(v) && s.trim() !== '';
+}
+
+function looksLikeCountry(s) {
+  const t = s.trim();
+  return IMPORT_COUNTRIES_SORTED.some(c => c.toLowerCase() === t.toLowerCase());
+}
+
+function looksLikeCity(s) {
+  // Heuristic: capitalised word(s), not a number, not a known country
+  return /^[A-Z][a-zA-Z\s]+$/.test(s.trim()) && !looksLikeCountry(s) && !looksNumeric(s);
+}
+
+function guessColRole(samples) {
+  // Count how many samples match each pattern
+  let countryScore = 0, numericScore = 0, cityScore = 0;
+  for (const s of samples) {
+    if (looksLikeCountry(s)) countryScore++;
+    else if (looksNumeric(s)) numericScore++;
+    else if (looksLikeCity(s)) cityScore++;
+  }
+  const n = samples.length || 1;
+  if (countryScore / n >= 0.4) return 'country';
+  if (cityScore / n >= 0.4) return 'city';
+  if (numericScore / n >= 0.4) {
+    // Try to distinguish qty vs amount: amounts tend to be larger or have decimals/currency symbols
+    const vals = samples.map(s => parseFloat(stripCurrency(s))).filter(v => !isNaN(v));
+    const avg = vals.reduce((a,b)=>a+b,0) / (vals.length||1);
+    const hasCurrSym = samples.some(s => /[€$£₺]/.test(s) || /S\$/.test(s));
+    const hasDecimals = samples.some(s => /\.\d/.test(s));
+    if (hasCurrSym || hasDecimals || avg > 50) return 'total';
+    return 'qty';
+  }
+  return 'ignore';
+}
+
+// Parse pasted text into a 2D array of cells.
+// Handles: tab-separated, multi-space-separated, and inline "Country qty €rate €total" format.
+function splitIntoTable(raw) {
+  const lines = raw.split('\n').map(l => l.trimEnd()).filter(l => l.trim().length > 0);
+  if (lines.length === 0) return [];
+
+  // 1. Tab-separated
+  const tabCount = lines.reduce((a,l) => a + (l.includes('\t') ? 1 : 0), 0);
+  if (tabCount > lines.length * 0.3) {
+    return lines.map(line => line.split('\t').map(c => c.trim()));
+  }
+
+  // 2. Multi-space-separated (2+ spaces between columns)
+  const multiSpaceCount = lines.reduce((a,l) => a + (/  +/.test(l) ? 1 : 0), 0);
+  if (multiSpaceCount > lines.length * 0.3) {
+    return lines.map(line => line.split(/  +/).map(c => c.trim()).filter(c => c !== ''));
+  }
+
+  // 3. Inline format: "Country [qty] [€rate] [€total]"
+  //    Split by detecting leading country name, then tokenising the remainder.
+  return lines.map(line => {
+    const t = line.trim();
+    const country = IMPORT_COUNTRIES_SORTED.find(c =>
+      t.toLowerCase().startsWith(c.toLowerCase()) &&
+      (t.length === c.length || /[\s\t,;]/.test(t[c.length]))
+    );
+    if (country) {
+      const rest = t.slice(country.length).trim();
+      // Extract numeric tokens (with optional leading currency symbol)
+      const tokens = rest.match(/[€$£₺]*[0-9][0-9.,]*/g) || [];
+      return [country, ...tokens];
+    }
+    // Fallback: split on single spaces
+    return t.split(/\s+/);
+  });
+}
+
+function detectColumns(table) {
+  if (table.length === 0) return [];
+  const maxCols = Math.max(...table.map(r => r.length));
+  const cols = [];
+  for (let c = 0; c < maxCols; c++) {
+    const samples = table.map(r => r[c] || '').filter(s => s.trim() !== '').slice(0, 5);
+    cols.push({ samples });
+  }
+  return cols;
+}
+
+function autoAssignMappings(cols, headerRow) {
+  const mapping = {};
+  const roles = cols.map(col => guessColRole(col.samples));
+
+  // Collect numeric column indices and their average values
+  const numericCols = [];
+  roles.forEach((role, i) => {
+    if (role === 'total') {
+      const avg = cols[i].samples
+        .map(s => parseFloat(stripCurrency(s)))
+        .filter(v => !isNaN(v))
+        .reduce((a,b,_,arr) => a + b/arr.length, 0);
+      numericCols.push({ i, avg });
+    }
+  });
+
+  // Use header hints if available to distinguish rate vs total
+  const headerHints = {};
+  if (headerRow) {
+    headerRow.forEach((h, i) => {
+      const lh = (h || '').toLowerCase();
+      if (/\brate\b|per unit|unit price|price/.test(lh)) headerHints[i] = 'rate';
+      else if (/\btotal\b|amount|cost/.test(lh)) headerHints[i] = 'total';
+      else if (/\bqty\b|quantity|recipients|count/.test(lh)) headerHints[i] = 'qty';
+      else if (/\bcountry\b|destination|region/.test(lh)) headerHints[i] = 'country';
+    });
+  }
+
+  roles.forEach((role, i) => {
+    // Header hint overrides guessed role
+    if (headerHints[i]) {
+      mapping[i] = headerHints[i];
+    } else if (role === 'total') {
+      mapping[i] = 'total'; // assign all numeric as total initially
+    } else {
+      mapping[i] = role;
+    }
+  });
+
+  // If multiple numeric cols, use avg magnitude to distinguish rate vs total
+  // Largest avg = grand total (ignore or total), smallest = rate per unit
+  if (numericCols.length >= 2) {
+    // Sort by avg ascending
+    const sorted = [...numericCols].sort((a,b) => a.avg - b.avg);
+    // Only reassign if no header hints exist for these cols
+    sorted.forEach((col, idx) => {
+      if (headerHints[col.i]) return; // header already decided
+      if (idx === 0) mapping[col.i] = 'rate';         // smallest avg → rate per unit
+      else if (idx === sorted.length - 1) mapping[col.i] = 'total'; // largest avg → total
+      else mapping[col.i] = 'ignore';                  // middle cols → ignore
+    });
+  }
+
+  // If only one numeric col, it's the total
+  if (numericCols.length === 1 && !headerHints[numericCols[0].i]) {
+    mapping[numericCols[0].i] = 'total';
+  }
+
+  return mapping;
+}
+
+function renderColMapUI() {
+  const section = document.getElementById('col-map-section');
+  const body = document.getElementById('col-map-body');
+  if (importDetectedCols.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  const roleOptions = [
+    { value: 'country', label: 'Country' },
+    { value: 'qty',     label: 'Quantity' },
+    { value: 'rate',    label: 'Rate (per unit)' },
+    { value: 'total',   label: 'Total amount' },
+    { value: 'city',    label: 'City (ignore)' },
+    { value: 'ignore',  label: '— Ignore —' },
+  ];
+
+  body.innerHTML = importDetectedCols.map((col, i) => {
+    const role = importColMapping[i] || 'ignore';
+    const colorClass = role === 'ignore' || role === 'city' ? '' : `mapped-${role}`;
+    const sampleText = col.samples.slice(0,3).join(', ');
+    const opts = roleOptions.map(o =>
+      `<option value="${o.value}" ${o.value === role ? 'selected' : ''}>${o.label}</option>`
+    ).join('');
+    return `<tr>
+      <td style="opacity:0.4;font-size:11px;padding-left:8px;">Col ${i+1}</td>
+      <td><span class="col-map-sample" title="${col.samples.join(', ')}">${sampleText}</span></td>
+      <td><select class="col-map-select ${colorClass}" data-colidx="${i}" onchange="onColMapChange(this)">${opts}</select></td>
+    </tr>`;
+  }).join('');
+}
+
+function onColMapChange(sel) {
+  const i = parseInt(sel.dataset.colidx);
+  importColMapping[i] = sel.value;
+  // Recolor
+  sel.className = 'col-map-select';
+  if (sel.value !== 'ignore' && sel.value !== 'city') sel.classList.add(`mapped-${sel.value}`);
+  validateAndPreview();
+}
+
+function validateAndPreview() {
+  const warn = document.getElementById('col-map-warn');
+  const roles = Object.values(importColMapping);
+  const hasCountry = roles.includes('country');
+  const hasTotal   = roles.includes('total');
+  const hasRate    = roles.includes('rate');
+  const hasQty     = roles.includes('qty');
+  const hasAmount  = hasTotal || hasRate; // either is enough
+
+  if (!hasCountry) {
+    warn.textContent = 'Please map a column to "Country".';
+    warn.classList.add('show');
+    clearPreview(); return;
+  }
+  if (!hasAmount) {
+    warn.textContent = 'Please map at least one numeric column to "Rate (per unit)" or "Total amount".';
+    warn.classList.add('show');
+    clearPreview(); return;
+  }
+
+  // Soft warnings (don't block)
+  const hints = [];
+  if (!hasQty) hints.push('No Quantity column — will default to 1 per row.');
+  if (!hasTotal && hasRate) hints.push('No Total column — total will be calculated as Rate × Qty.');
+  if (hints.length) {
+    warn.textContent = hints.join(' ');
+    warn.classList.add('show');
+  } else {
+    warn.classList.remove('show');
+  }
+  previewImport();
+}
+
+function clearPreview() {
+  const preview = document.getElementById('import-preview');
+  const err = document.getElementById('import-err');
+  const btn = document.getElementById('import-confirm-btn');
+  preview.classList.remove('show');
+  err.classList.remove('show');
+  btn.disabled = true;
+  btn.textContent = 'Add to shipping';
+  importParsedRows = [];
+}
+
+function parseImportWithMapping(table, mapping) {
+  const { cur, fx } = getImportFx();
+  const countryCol = parseInt(Object.entries(mapping).find(([,v]) => v === 'country')?.[0] ?? -1);
+  const qtyCol     = parseInt(Object.entries(mapping).find(([,v]) => v === 'qty')?.[0] ?? -1);
+  const totalCol   = parseInt(Object.entries(mapping).find(([,v]) => v === 'total')?.[0] ?? -1);
+  const rateCol    = parseInt(Object.entries(mapping).find(([,v]) => v === 'rate')?.[0] ?? -1);
+
+  // Need at least country + one numeric column
+  if (countryCol < 0 || (totalCol < 0 && rateCol < 0)) return [];
+
+  const rows = [];
+  for (const row of table) {
+    const rawCountry = row[countryCol] || '';
+    const country = IMPORT_COUNTRIES_SORTED.find(c =>
+      c.toLowerCase() === rawCountry.trim().toLowerCase()
+    );
+    if (!country) continue;
+
+    // Qty
+    let qty = 1;
+    if (qtyCol >= 0) {
+      const q = parseFloat(stripCurrency(row[qtyCol] || ''));
+      if (!isNaN(q) && q > 0) qty = Math.round(q);
+    }
+
+    // Rate per unit (foreign currency)
+    let rateForeign = 0;
+    if (rateCol >= 0) {
+      const r = parseFloat(stripCurrency(row[rateCol] || ''));
+      if (!isNaN(r) && r > 0) rateForeign = r;
+    }
+
+    // Total (foreign currency) — derive from rate×qty if not mapped
+    let totalForeign = 0;
+    if (totalCol >= 0) {
+      const t = parseFloat(stripCurrency(row[totalCol] || ''));
+      if (!isNaN(t) && t > 0) totalForeign = t;
+    }
+    if (totalForeign <= 0 && rateForeign > 0) totalForeign = Math.round(rateForeign * qty * 100) / 100;
+    if (rateForeign <= 0 && totalForeign > 0) rateForeign = Math.round((totalForeign / qty) * 100) / 100;
+
+    if (totalForeign <= 0) continue; // skip rows with no usable amount
+
+    const amountSGD = cur === 'SGD' ? totalForeign : Math.round(totalForeign * fx * 100) / 100;
+    rows.push({ country, qty, rateForeign, totalForeign, amountSGD });
+  }
+  return rows;
+}
+
+function onImportPaste() {
+  const raw = document.getElementById('import-paste').value;
+  if (raw.trim().length === 0) {
+    document.getElementById('col-map-section').style.display = 'none';
+    clearPreview();
+    return;
+  }
+  const table = splitIntoTable(raw);
+  importRawLines = table;
+  importDetectedCols = detectColumns(table);
+
+  // Skip header row if first row looks like labels
+  const firstRow = table[0] || [];
+  const firstRowIsHeader = firstRow.every(c => !looksNumeric(c));
+  const headerRow = firstRowIsHeader ? firstRow : null;
+  const dataTable = firstRowIsHeader && table.length > 1 ? table.slice(1) : table;
+  importRawLines = dataTable;
+  importDetectedCols = detectColumns(dataTable);
+
+  importColMapping = autoAssignMappings(importDetectedCols, headerRow);
+  renderColMapUI();
+  validateAndPreview();
+}
+
+function openImport(si) {
+  importTargetSi = si;
+  importParsedRows = [];
+  importColMapping = {};
+  importDetectedCols = [];
+  importRawLines = [];
+  document.getElementById('import-paste').value = '';
+  document.getElementById('col-map-section').style.display = 'none';
+  document.getElementById('import-preview').classList.remove('show');
+  document.getElementById('import-preview').innerHTML = '';
+  document.getElementById('import-err').classList.remove('show');
+  document.getElementById('col-map-warn').classList.remove('show');
+  document.getElementById('import-confirm-btn').disabled = true;
+  document.getElementById('import-confirm-btn').textContent = 'Add to shipping';
+
+  // Update rate row to reflect supplier currency
+  const { cur, fx } = getImportFx();
+  const labelEl = document.getElementById('import-rate-label');
+  const badgeEl = document.getElementById('import-rate-badge');
+  const noteEl  = document.getElementById('import-rate-note');
+  if (cur === 'SGD') {
+    labelEl.textContent = 'Currency';
+    badgeEl.textContent = 'SGD — no conversion needed';
+    badgeEl.style.background = 'rgba(22,44,54,0.08)';
+    badgeEl.style.color = 'var(--dark)';
+    noteEl.textContent = '';
+  } else {
+    labelEl.textContent = `${cur} → SGD`;
+    badgeEl.textContent = `1 ${cur} = S$${fx}`;
+    badgeEl.style.background = '';
+    badgeEl.style.color = '';
+    noteEl.textContent = 'rate set in supplier tab';
+  }
+
+  document.getElementById('import-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('import-paste').focus(), 50);
+}
+
+function closeImport() {
+  document.getElementById('import-overlay').classList.remove('open');
+  importTargetSi = null;
+  importParsedRows = [];
+}
+
+function previewImport() {
+  const rows = parseImportWithMapping(importRawLines, importColMapping);
+  importParsedRows = rows;
+  const preview = document.getElementById('import-preview');
+  const err = document.getElementById('import-err');
+  const btn = document.getElementById('import-confirm-btn');
+
+  if (rows.length === 0) {
+    preview.classList.remove('show');
+    err.classList.add('show');
+    btn.disabled = true;
+    btn.textContent = 'Add to shipping';
+    return;
+  }
+
+  err.classList.remove('show');
+  btn.disabled = false;
+  const { cur } = getImportFx();
+  const sym = CURRENCY_SYMBOLS[cur] || cur + ' ';
+  const isForeign = cur !== 'SGD';
+
+  preview.innerHTML = rows.map(r =>
+    `<div class="import-preview-row">
+      <span class="pr-country">${r.country}</span>
+      <span class="pr-qty">${r.qty}×</span>
+      ${isForeign ? `<span class="pr-orig">${sym}${r.totalForeign.toLocaleString()}</span>` : ''}
+      <span class="pr-amt">S$${r.amountSGD.toLocaleString()}</span>
+    </div>`
+  ).join('');
+  btn.textContent = `Add ${rows.length} row${rows.length>1?'s':''} to shipping`;
+  preview.classList.add('show');
+}
+
+function confirmImport() {
+  if (importTargetSi === null || importParsedRows.length === 0) return;
+  const si = importTargetSi;
+  importParsedRows.forEach(r => {
+    suppliers[si].items.push({
+      label: `Shipping — ${r.country}`,
+      qty: r.qty,
+      rate: r.rateForeign,
+      amount: r.amountSGD,
+      type: 'shipping',
+      country: r.country,
+    });
+  });
+  rebuildPanel(si);
+  renderOverview();
+  closeImport();
+}
+// ── END IMPORT LOGIC ──────────────────────────────────────────
+
+// ── STATUS EDITOR MODAL ───────────────────────────────────────
+let _statusDraft = [];
+
+function openStatusModal() {
+  _statusDraft = statusOptions.map(o => ({ ...o }));
+  renderStatusRows();
+  document.getElementById('status-modal-overlay').classList.add('open');
+}
+
+function closeStatusModal() {
+  document.getElementById('status-modal-overlay').classList.remove('open');
+}
+
+function renderStatusRows() {
+  const container = document.getElementById('status-rows-container');
+  const BADGE_CLASSES = { 'b-green': 'bp-green', 'b-amber': 'bp-amber', 'b-red': 'bp-red' };
+  container.innerHTML = _statusDraft.map((opt, i) => {
+    const picks = ['b-green', 'b-amber', 'b-red'].map(b =>
+      `<button type="button" class="badge-pick-btn ${BADGE_CLASSES[b]}${opt.badge === b ? ' selected' : ''}"
+        onclick="setStatusBadge(${i},'${b}')"></button>`
+    ).join('');
+    return `<div class="status-row">
+      <input class="sl" type="text" value="${esc(opt.label)}" oninput="_statusDraft[${i}].label=this.value">
+      <div class="badge-picker">${picks}</div>
+      <button class="del-btn" onclick="removeStatusRow(${i})" title="Remove">×</button>
+    </div>`;
+  }).join('');
+}
+
+function setStatusBadge(i, badge) {
+  _statusDraft[i].badge = badge;
+  renderStatusRows();
+}
+
+function addStatusRow() {
+  _statusDraft.push({ value: 'status-' + Date.now(), label: 'New status', badge: 'b-amber' });
+  renderStatusRows();
+}
+
+function removeStatusRow(i) {
+  if (_statusDraft.length <= 1) return;
+  _statusDraft.splice(i, 1);
+  renderStatusRows();
+}
+
+function saveStatusModal() {
+  statusOptions = _statusDraft.map(o => ({ ...o }));
+  closeStatusModal();
+  renderAll();    // rebuild all panels so dropdowns reflect new list
+  saveState();
+}
+// ── END STATUS EDITOR MODAL ───────────────────────────────────
+
+// ── LAST YEAR DATA (source of truth — never read from live inputs) ──
+const lastYearData = { gifts: 5111, ship: 7292, duties: 1157 };
+
+// Click-to-edit helpers for last year fields
+function lyStartEdit(field) {
+  const display = document.getElementById('ly-' + field + '-display');
+  const input   = document.getElementById('ly-' + field);
+  if (!display || !input) return;
+  input.value = lastYearData[field];
+  display.style.display = 'none';
+  input.style.display   = 'inline';
+  input.focus();
+  input.select();
+  input.oninput  = () => { lastYearData[field] = parseFloat(input.value) || 0; recalcLastYear(); };
+  input.onblur   = () => lyEndEdit(field);
+  input.onkeydown = (e) => { if (e.key === 'Enter' || e.key === 'Escape') input.blur(); };
+}
+
+function lyEndEdit(field) {
+  const display = document.getElementById('ly-' + field + '-display');
+  const input   = document.getElementById('ly-' + field);
+  if (!display || !input) return;
+  lastYearData[field] = parseFloat(input.value) || 0;
+  display.textContent  = lastYearData[field].toLocaleString();
+  display.style.display = 'inline';
+  input.style.display   = 'none';
+  recalcLastYear();
+}
+
+// ── LAST YEAR RECALC ──────────────────────────────────────────
+function recalcLastYear() {
+  const g = lastYearData.gifts;
+  const s = lastYearData.ship;
+  const d = lastYearData.duties;
+  const total = g + s + d;
+  const pctG = total > 0 ? Math.round(g / total * 100) : 0;
+  const pctS = total > 0 ? Math.round(s / total * 100) : 0;
+  const pctD = total > 0 ? Math.round(d / total * 100) : 0;
+  // Total in breakdown
+  const lyTotalEl = document.getElementById('ly-total');
+  if (lyTotalEl) lyTotalEl.textContent = total.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0});
+  document.getElementById('ly-gifts-label').textContent  = `total cost of gifts (${pctG}%)`;
+  document.getElementById('ly-ship-label').textContent   = `shipping costs (${pctS}%)`;
+  document.getElementById('ly-duties-label').textContent = `duties & customs (${pctD}%)`;
+  // CPR is now the headline
+  const lyRecipients = 100;
+  const lyCpr = document.getElementById('ly-cpr-display');
+  if (lyCpr) lyCpr.textContent = lyRecipients > 0 ? fmtSGD(Math.round(total / lyRecipients)) : 'S$ —';
+  updateBudgetChart();
+  saveState();
+}
+
+// ── BUDGET CHART ───────────────────────────────────────────────
+let budgetChart = null;
+
+function initBudgetChart() {
+  const ctx = document.getElementById('budget-chart');
+  if (!ctx || budgetChart || typeof Chart === 'undefined') return;
+  const _tG = suppliers.reduce((a,s) => a + getActualGiftCost(s), 0);
+  const _tS = suppliers.reduce((a,s) => a + getActualShipCost(s), 0);
+  const _tD = suppliers.reduce((a,s) => a + getActualCustomsCost(s), 0);
+  Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+  Chart.defaults.font.size = 12;
+  budgetChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Gifting cost', 'Shipping cost', 'Duties cost'],
+      datasets: [
+        { label: 'Spend', data: [_tG, _tS, _tD], backgroundColor: '#467CBD', barPercentage: 0.92, categoryPercentage: 0.5, borderRadius: 0 },
+        { label: 'Last year', data: [lastYearData.gifts, lastYearData.ship, lastYearData.duties], backgroundColor: '#FAE3F0', barPercentage: 0.92, categoryPercentage: 0.5, borderRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      hover: { mode: null },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: c => ` ${c.dataset.label}: S$ ${c.parsed.y.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, border: { color: 'rgba(22,44,54,0.15)' }, ticks: { color: 'rgba(22,44,54,0.55)' } },
+        y: { beginAtZero: true, border: { display: false }, grid: { color: 'rgba(22,44,54,0.07)' },
+             ticks: { color: 'rgba(22,44,54,0.45)', callback: v => v.toLocaleString() } }
+      }
+    }
+  });
+}
+
+function updateBudgetChart() {
+  if (!budgetChart) return;
+  const tG = suppliers.reduce((a,s) => a + getActualGiftCost(s), 0);
+  const tS = suppliers.reduce((a,s) => a + getActualShipCost(s), 0);
+  const tD = suppliers.reduce((a,s) => a + getActualCustomsCost(s), 0);
+  budgetChart.data.datasets[0].data = [tG, tS, tD];
+  budgetChart.data.datasets[1].data = [lastYearData.gifts, lastYearData.ship, lastYearData.duties];
+  budgetChart.update('none');
+}
+// ── END BUDGET CHART ───────────────────────────────────────────
+
+initEditMode();
+// Async boot: load from Supabase, then render
+(async () => {
+  await loadState();
+  // Restore last year values into lastYearData before any rendering
+  if (window._restoreLastYear) {
+    const ly = window._restoreLastYear;
+    lastYearData.gifts  = parseFloat(ly.gifts)  || lastYearData.gifts;
+    lastYearData.ship   = parseFloat(ly.ship)   || lastYearData.ship;
+    lastYearData.duties = parseFloat(ly.duties) || lastYearData.duties;
+  }
+  // Always sync display spans to lastYearData on load
+  ['gifts','ship','duties'].forEach(f => {
+    const el = document.getElementById('ly-' + f + '-display');
+    if (el) el.textContent = lastYearData[f].toLocaleString();
+  });
+  // Patch renderOverview to also update chart
+  const _ro = renderOverview;
+  renderOverview = function() { _ro(); updateBudgetChart(); };
+  // Render everything first so supplier data is ready
+  renderAll();
+  recalcLastYear();
+  // Init chart after all data is ready
+  if (typeof Chart !== 'undefined') {
+    initBudgetChart();
+  } else {
+    window.addEventListener('load', initBudgetChart);
+  }
+})();
+</script>
+</body>
+</html>
