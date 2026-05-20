@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☺︎</text></svg>">
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -214,41 +213,7 @@ tfoot td { font-weight: 600; color:grey;border-top: var(--border); border-bottom
 .status-dot.saving { background: #854F0B; opacity: 1; }
 .last-updated { font-size: 12px; color: var(--dark); opacity: 0.55; display: flex; align-items: center; gap: 6px; }
 
-/* Read-only mode */
-body.read-only .edit-statuses-btn,
-body.read-only .add-btn,
-body.read-only .add-tab-btn,
-body.read-only .del-btn,
-body.read-only .remove-supplier-btn,
-body.read-only .import-btn,
-body.read-only .compare-toggle-btn,
-body.read-only .section-block-btns,
-body.read-only [id^="url-display-wrap-"] button,
-body.read-only .meta-row select,
-body.read-only .meta-row input[type=text] { display: none !important; pointer-events: none !important; }
-body.read-only .line-items input[type=text],
-body.read-only .line-items input.num,
-body.read-only .line-items input.qty { pointer-events: none; border-color: transparent !important; background: transparent !important; cursor: default; }
-body.read-only .tab-btn-input,
-body.read-only .tab-name-input { pointer-events: none; cursor: default; }
-body.read-only [id^="ly-"][id$="-display"] { cursor: default; border-bottom: none; }
-body.read-only .sum-card-toggle { display: none; }
-body.read-only .meta-row input[readonly] { pointer-events: none; border-color: rgba(22,44,54,0.12); background: transparent; }
 
-/* Edit key banner */
-.edit-banner { position: fixed; bottom: 0; left: 0; right: 0; background: var(--dark); color: var(--white); z-index: 200; display: flex; align-items: center; gap: 12px; padding: 10px 20px; font-size: 13px; font-family: 'Inter', sans-serif; }
-.edit-banner input { flex: 0 0 200px; padding: 6px 10px; font-size: 13px; font-family: 'Inter', sans-serif; border: 1px solid rgba(255,255,255,0.25); border-radius: 0; background: rgba(255,255,255,0.08); color: var(--white); outline: none; }
-.edit-banner input::placeholder { color: rgba(255,255,255,0.35); }
-.edit-banner input:focus { border-color: rgba(255,255,255,0.6); }
-.edit-banner button { padding: 6px 16px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500; background: var(--white); color: var(--dark); border: none; border-radius: 0; cursor: pointer; }
-.edit-banner button:hover { background: #e8e8e8; }
-.edit-banner .banner-msg { font-size: 12px; opacity: 0.6; }
-.edit-banner .banner-err { font-size: 12px; color: #ff8080; display: none; }
-.edit-banner .banner-err.show { display: inline; }
-.ro-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; background: #FAEEDA; color: #633806; padding: 3px 9px; border-radius: 0; }
-body.edit-mode .edit-banner { display: none; }
-body.edit-mode .ro-badge { display: none; }
-body:not(.edit-mode) { padding-bottom: 52px; }
 
 /* Status editor modal */
 .status-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(22,44,54,0.45); z-index: 150; align-items: center; justify-content: center; }
@@ -284,7 +249,6 @@ body:not(.edit-mode) { padding-bottom: 52px; }
 <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1.25rem;">
   <div style="display:flex;align-items:center;gap:10px;">
     <h1 style="font-size:22px;font-weight:600;color:var(--dark);letter-spacing:-0.01em;font-family:'Bitcount Single',monospace;">Corporate Gifting Tracker</h1>
-    <span class="ro-badge" id="ro-badge">👁 View only</span>
   </div>
   <div class="last-updated" id="refreshStamp"><span class="status-dot" id="statusDot"></span>Loading…</div>
 </div>
@@ -426,13 +390,6 @@ body:not(.edit-mode) { padding-bottom: 52px; }
   </div>
 </div>
 
-<!-- Edit key banner (visible in read-only mode) -->
-<div class="edit-banner" id="edit-banner">
-  <span class="banner-msg">This tracker is read-only. Enter the edit key to make changes.</span>
-  <input type="password" id="edit-key-input" placeholder="Edit key…" onkeydown="if(event.key==='Enter')tryEditKey()">
-  <button onclick="tryEditKey()">Unlock</button>
-  <span class="banner-err" id="banner-err">Incorrect key</span>
-</div>
 
 
 <div class="import-overlay" id="import-overlay" onclick="if(event.target===this)closeImport()">
@@ -470,42 +427,20 @@ body:not(.edit-mode) { padding-bottom: 52px; }
 const SUPABASE_URL = 'https://bjnuqlsknfirywtmynpp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_pra2_IemArxD3GBujg3VZg_EBG8_RHS';
 const RECORD_ID    = 'main';
-// ⚠️  Change this to your own password before deploying!
-const EDIT_PASSWORD = 'ilovechimbi';
 
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── EDIT MODE ──────────────────────────────────────────────────
-let _editMode = false;
-
-function tryEditKey() {
-  const val = document.getElementById('edit-key-input').value;
-  if (val === EDIT_PASSWORD) {
-    _editMode = true;
-    sessionStorage.setItem('gifting-edit', '1');
-    document.body.classList.remove('read-only');
-    document.body.classList.add('edit-mode');
-    document.getElementById('banner-err').classList.remove('show');
-  } else {
-    document.getElementById('banner-err').classList.add('show');
-    document.getElementById('edit-key-input').value = '';
-  }
-}
+// ── EDIT MODE (always on) ──────────────────────────────────────
+let _editMode = true;
 
 function initEditMode() {
-  if (sessionStorage.getItem('gifting-edit') === '1') {
-    _editMode = true;
-    document.body.classList.remove('read-only');
-    document.body.classList.add('edit-mode');
-  } else {
-    document.body.classList.add('read-only');
-  }
+  document.body.classList.add('edit-mode');
 }
 
 // ── SAVE ───────────────────────────────────────────────────────
 let _saveTimer = null;
 function saveState() {
-  if (!_editMode) return; // read-only visitors never write
+  if (!_editMode) return;
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(_doSave, 800); // debounce 800 ms
 }
