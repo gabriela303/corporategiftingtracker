@@ -425,10 +425,32 @@ tfoot td { font-weight: 600; color:grey;border-top: var(--border); border-bottom
 <script>
 // ── SUPABASE PERSISTENCE ───────────────────────────────────────
 const SUPABASE_URL = 'https://mwgjjynbcqtjmsqxebqc.supabase.co/rest/v1/';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13Z2pqeW5iY3F0am1zcXhlYnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzU2MjksImV4cCI6MjA5NTQ1MTYyOX0.Yb5VsYYe4DzgYm67bGc_7JsjRyUrKThHbJ8IzBPBwtc';
+const SUPABASE_KEY = 'sb_publishable_ZbUUz5-j4g6PkTh2qMQU-w_Zv68JkPb'; // your full key
 const RECORD_ID    = 'main';
 
-const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const _sb = {
+  from: (table) => ({
+    upsert: async (data) => {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify(data)
+      });
+      return { error: r.ok ? null : await r.json() };
+    },
+    select: (cols) => ({
+      eq: (col, val) => ({
+        single: async () => {
+          const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${cols}&${col}=eq.${val}&limit=1`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+          });
+          const data = await r.json();
+          return { data: data?.[0] || null, error: r.ok ? null : data };
+        }
+      })
+    })
+  })
+};
 
 // ── EDIT MODE (always on) ──────────────────────────────────────
 let _editMode = true;
