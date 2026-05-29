@@ -1028,7 +1028,7 @@ function buildPanel(sup, si) {
           ? `<colgroup><col style="width:30%"><col style="width:8%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:15%"><col style="width:8%"></colgroup>
              <thead><tr><th>Line item</th><th>Qty</th><th>Rate (${sup.currency})</th><th>Total (${sup.currency})</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
           : `<colgroup><col style="width:12%"><col style="width:32%"><col style="width:10%"><col style="width:18%"><col style="width:20%"><col style="width:8%"></colgroup>
-             <thead><tr><th>Link</th><th>Line item</th><th>Qty</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>
+             <thead><tr><th>Link</th><th>Line item</th><th>Qty</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
         }
         <tbody>${makeGiftRows() || emptyRow('No gift items yet', (sup.currency && sup.currency !== 'SGD') ? 7 : 5)}</tbody>
         ${sup.items.filter(i=>i.type==='gift').length > 0 ? `<tfoot><tr style="border-top:var(--border);background:rgba(22,44,54,0.03);">
