@@ -1025,8 +1025,8 @@ function buildPanel(sup, si) {
       <div class="li-section-label">Gift items</div>
       <table class="line-items" style="table-layout:fixed;">
         ${(sup.currency && sup.currency !== 'SGD')
-          ? `<colgroup><col style="width:30%"><col style="width:8%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:15%"><col style="width:8%"></colgroup>
-             <thead><tr><th>Line item</th><th>Qty</th><th>Rate (${sup.currency})</th><th>Total (${sup.currency})</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
+          ? `<colgroup><col style="width:24%"><col style="width:10%"><col style="width:8%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:15%"><col style="width:8%"></colgroup>
+             <thead><tr><th>Line item</th><th>Product URL</th><th>Qty</th><th>Rate (${sup.currency})</th><th>Total (${sup.currency})</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
           : `<colgroup><col style="width:32%"><col style="width:12%"><col style="width:10%"><col style="width:18%"><col style="width:20%"><col style="width:8%"></colgroup>
              <thead><tr><th>Line item</th><th>Product URL</th><th>Qty</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
         }
