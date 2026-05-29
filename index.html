@@ -909,6 +909,7 @@ function buildPanel(sup, si) {
       const fmtF = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
       const fmtS = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
       return `<tr>
+        <td><input type="text" value="${esc(item.link||'')}" placeholder="https://…" oninput="suppliers[${si}].items[${ii}].link=this.value;syncPanel(${si})" style="font-size:11px;" ${item.link ? `onclick="window.open('${esc(item.link)}','_blank')"` : ''}></td>
         <td><input type="text" value="${esc(item.label)}" oninput="suppliers[${si}].items[${ii}].label=this.value;syncPanel(${si})"></td>
         <td><input type="text" class="qty" value="${qty}" oninput="suppliers[${si}].items[${ii}].qty=parseInt(this.value)||1;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
         ${cur !== 'SGD' ? `<td><input type="text" class="num" value="${rate > 0 ? rate : ''}" placeholder="0.00" oninput="suppliers[${si}].items[${ii}].rate=parseFloat(this.value)||0;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
@@ -1026,8 +1027,8 @@ function buildPanel(sup, si) {
         ${(sup.currency && sup.currency !== 'SGD')
           ? `<colgroup><col style="width:30%"><col style="width:8%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:15%"><col style="width:8%"></colgroup>
              <thead><tr><th>Line item</th><th>Qty</th><th>Rate (${sup.currency})</th><th>Total (${sup.currency})</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
-          : `<colgroup><col style="width:44%"><col style="width:10%"><col style="width:18%"><col style="width:20%"><col style="width:8%"></colgroup>
-             <thead><tr><th>Line item</th><th>Qty</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>`
+          : `<colgroup><col style="width:12%"><col style="width:32%"><col style="width:10%"><col style="width:18%"><col style="width:20%"><col style="width:8%"></colgroup>
+             <thead><tr><th>Link</th><th>Line item</th><th>Qty</th><th>Rate (SGD)</th><th>Total (SGD)</th><th></th></tr></thead>
         }
         <tbody>${makeGiftRows() || emptyRow('No gift items yet', (sup.currency && sup.currency !== 'SGD') ? 7 : 5)}</tbody>
         ${sup.items.filter(i=>i.type==='gift').length > 0 ? `<tfoot><tr style="border-top:var(--border);background:rgba(22,44,54,0.03);">
