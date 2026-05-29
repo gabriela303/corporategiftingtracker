@@ -909,7 +909,7 @@ function buildPanel(sup, si) {
       const fmtF = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
       const fmtS = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
       return `<tr>
-        <td><input type="text" value="${esc(item.link||'')}" placeholder="https://…" oninput="suppliers[${si}].items[${ii}].link=this.value;syncPanel(${si})" style="font-size:11px;" ${item.link ? `onclick="window.open('${esc(item.link)}','_blank')"` : ''}></td>
+        <td><input type="text" value="${esc(item.link||'')}" placeholder="https://…" oninput="suppliers[${si}].items[${ii}].link=this.value;syncPanel(${si})" onkeydown="if(event.key==='Enter'&&this.value)window.open(this.value,'_blank')" style="font-size:11px;"></td>
         <td><input type="text" value="${esc(item.label)}" oninput="suppliers[${si}].items[${ii}].label=this.value;syncPanel(${si})"></td>
         <td><input type="text" class="qty" value="${qty}" oninput="suppliers[${si}].items[${ii}].qty=parseInt(this.value)||1;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
         ${cur !== 'SGD' ? `<td><input type="text" class="num" value="${rate > 0 ? rate : ''}" placeholder="0.00" oninput="suppliers[${si}].items[${ii}].rate=parseFloat(this.value)||0;suppliers[${si}].items[${ii}].amount=calcItemSGD(${si},${ii});syncPanel(${si})"></td>
